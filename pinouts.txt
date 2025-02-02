@@ -1,0 +1,37 @@
+
+
+For all the urban freewheelers out there.
+ 
+
+
+#----------------------------------------#
+#ENCODERS
+
+X axis encoder
+
+
+X axis encoder
+
+
+
+#----------------------------------------#
+#"LED" board ribbon cable 
+
+blck -ylw -red -red -red
+
+
+
+
+#----------------------------------------#
+CNC4PC BOARD 
+
+
+
+
+#----------------------------------------#
+
+
+
+
+
+
