@@ -30,13 +30,31 @@
 */
 
 
+
+//MACHINE PARAMETERS
+
+//servo response time
 #define SERVO_DEL_MS 2
 
+//pump head travel (PWM COUNTER==POSITION @20ms pulses)
 #define HEAD_UP_EXTENT 400
 #define HEAD_DWN_EXTENT 250
 
+//"atomic unit" of sweet pumping action
+#define PUMP_PULSE_DURATION 500
+
+/*
+
+#define LINE_THICK
+#define SMALL_BLOB 
+#define LARGE_BLOB
+
+*/
 
 
+
+
+//PIN DEFINITIONS 
 #define PUMP_MOSFET_PORT PORTB
 #define PUMP_MOSFET_PIN 0
 #define PUMP_MOSFET_DDR DDRB
@@ -131,7 +149,7 @@ void pump_pulse(uint16_t time)
     uint16_t t=0; 
     for(t=0;t<time;t++) 
     {
-        _delay_us(1000);    
+        _delay_us(PUMP_PULSE_DURATION);    
     }
 
     cbi(LEDPIN_PORT, LEDPIN_PIN );
@@ -154,6 +172,16 @@ void runloop(void)
         }  
     }
 }
+
+void run_pump_dwn(void)
+{
+    head_dwn();
+    pump_pulse(500);
+    _delay_ms(100);
+    head_up();    
+    _delay_ms(100);
+}
+
 /******************************/
 
 int main (void)
@@ -164,9 +192,9 @@ int main (void)
     //PORTB = 0xff;
 
     while(1){
-        pump_pulse(500);
 
-        _delay_ms(500);
+        run_pump_dwn();
+        _delay_ms(1500);
     }
 
     //runloop();
