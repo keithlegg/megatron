@@ -19,8 +19,10 @@
     2 - PD4 - (arduino )    cnc d1
     3 - PD5 - (arduino )    cnc d2
     4 - PD5 - (arduino )    cnc d3
-        PB0 - (arduino D8)
-        PB1 - (arduino D9)
+        PB0 - (arduino D8)  pump mosfet
+        PB1 - (arduino D9)  servo pwm
+
+        # PB2 - pump PWM 
 
 */
 
@@ -59,6 +61,7 @@
 #define HEAD_DWN_EXTENT 250
 
 //"atomic unit" of sweet pumping action
+//maybe not needed because I got pump wired to the second PWM 
 #define PUMP_PULSE_DURATION 500
 
 /*
@@ -70,18 +73,9 @@
 */
 
 
-
-
-//PIN DEFINITIONS 
-#define PUMP_MOSFET_PORT PORTB
-#define PUMP_MOSFET_PIN 0
-#define PUMP_MOSFET_DDR DDRB
-
 #define LEDPIN_PORT PORTB
 #define LEDPIN_PIN 5
 #define LEDPIN_DDR DDRB
-
-
 
 #define BIT_ON 0x30 //ascii 1
 #define BIT_OFF 0x31 //ascii 0
@@ -176,9 +170,15 @@ void send_txt_1byte( uint8_t data){
 
 
 /***********************************************/
-void pwm_write (uint16_t val)
+void set_servo_pwm (uint16_t val)
 {
     OCR1A = val;
+}
+
+/***********************************************/
+void set_pump_pwm (uint16_t val)
+{
+    OCR1B = val;
 }
 
 /***********************************************/
@@ -209,8 +209,15 @@ void setup_interrupts(void)
 void setup_pwm (void)
 {
     ICR1 = ICR_MAX;  // Input Capture Register (sets the period)
-    OCR1A = OCR_MIN; // Output Capture Register
-    TCCR1A = (1 << COM1A1) | (1<<WGM11);
+
+    OCR1A = OCR_MIN; // servo pwm
+    OCR1B = OCR_MIN;   // pump pwm 
+
+    //this works for servo only 
+    //TCCR1A = (1 << COM1A1) | (1<<WGM11);
+    
+    //uses both PWMs (servo + pump)
+    TCCR1A = (1 << COM1A1) | (1 << COM1B1) | (1<<WGM11);
     TCCR1B = (1<<WGM13) | (1<<WGM12) | (1<<CS11) | (1<<CS10);
 
 }
@@ -226,7 +233,7 @@ void test_servo(void)
         _delay_ms(2000);
 
         for(cnt=HEAD_DWN_EXTENT;cnt<HEAD_UP_EXTENT;cnt++){
-            pwm_write(cnt);
+            set_servo_pwm(cnt);
             _delay_ms(SERVO_DEL_MS);
         }
         
@@ -237,21 +244,22 @@ void test_servo(void)
 /***********************************************/
 void head_up(void)
 {
-    pwm_write(HEAD_UP_EXTENT);
+    set_servo_pwm(HEAD_UP_EXTENT);
 }
 
 /***********************************************/
 void head_dwn(void)
 {
-    pwm_write(HEAD_DWN_EXTENT);
+    set_servo_pwm(HEAD_DWN_EXTENT);
 }
 
 /***********************************************/
-void pump_pulse(uint16_t time)
+
+void pump_pulse(uint16_t time, uint16_t power)
 {
 
     sbi(LEDPIN_PORT, LEDPIN_PIN );
-    sbi(PUMP_MOSFET_PORT, PUMP_MOSFET_PIN );
+    set_pump_pwm(power);
 
     uint16_t t=0; 
     for(t=0;t<time;t++) 
@@ -259,19 +267,61 @@ void pump_pulse(uint16_t time)
         _delay_us(PUMP_PULSE_DURATION);    
     }
 
+    set_pump_pwm(0);
     cbi(LEDPIN_PORT, LEDPIN_PIN );
-    cbi(PUMP_MOSFET_PORT, PUMP_MOSFET_PIN );
+
 }
 
-/***********************************************/
 void run_pump_dwn(void)
 {
     head_dwn();
-    pump_pulse(500);
-    _delay_ms(100);
+
+    pump_pulse(1500, 500);
+    _delay_ms(500);
+
+    pump_pulse(1500, 1000);
+    _delay_ms(500);
+
+    pump_pulse(1500, 1500);    
+    _delay_ms(500);
+
+    pump_pulse(1500, 2000);
+    _delay_ms(500);
+
+    pump_pulse(1500, 2500);
+    _delay_ms(500);
+
+    pump_pulse(1500, 3000);
+    _delay_ms(500);
+
     head_up();    
-    _delay_ms(100);
 }
+
+void test_pump(void)
+{
+    while(1){
+        run_pump_dwn();
+        _delay_ms(1500);
+    }  
+}
+ 
+
+/*
+void test_pump(void)
+{
+    uint16_t cnt = 0; 
+    
+    while(1)
+    {
+        _delay_ms(1000);
+        for(cnt=0;cnt<1000;cnt++){
+            set_pump_pwm(cnt);
+            _delay_ms(5);
+        }
+        
+    } 
+}
+*/
 
 /***********************************************/
 uint8_t reverse_bits(uint8_t v)
@@ -299,14 +349,11 @@ void test_chatterbox(void)
         //assemble 2 4bits into an 8bit byte  
         if(stale==0)
         {
-            
-             
             if(word_count==0)
             {
                 CNC_COMMAND1 =  reverse_bits(BYTE_BUFFER);
                 word_count++;
                 stale=1; 
-              
             }else{
                 CNC_COMMAND1 |= reverse_bits(BYTE_BUFFER)>>4 ;
                 word_count=0;
@@ -316,28 +363,81 @@ void test_chatterbox(void)
                 USART_Transmit( 0xa ); //CHAR_TERM = new line  
                 USART_Transmit( 0xd ); //0xd = carriage return
             } 
-
-
             //TODO set up a way to store every 3rd byte 
             /* if(byte_count==2){}*/
-            
-
         }//data in rx buffer 
-
     }//endless loop
 }
 
 
-/******************************/
-void test_pump(void)
-{
-    while(1){
-        run_pump_dwn();
-        _delay_ms(1500);
-    }  
-}
+
 
 /******************************/
+/******************************/
+
+
+void runloop(void)
+{
+
+    while(1)
+    { 
+        //FETCH COMMAND FROM CNC  
+        //assemble 2 4bits into an 8bit byte  
+        if(stale==0)
+        {
+            if(word_count==0)
+            {
+                CNC_COMMAND1 =  reverse_bits(BYTE_BUFFER);
+                word_count++;
+                stale=1; 
+            }
+            else /////////////////////////////////////////
+            {
+                CNC_COMMAND1 |= reverse_bits(BYTE_BUFFER)>>4 ;
+                word_count=0;
+                stale=1;  
+
+                /*
+                for debugging                               
+                send_txt_1byte(CNC_COMMAND1);
+                USART_Transmit( 0xa ); //CHAR_TERM = new line  
+                USART_Transmit( 0xd ); //0xd = carriage return
+                */
+
+                if(CNC_COMMAND1==0b00000001)
+                {
+                    //USART_Transmit(0x42);
+                    //USART_Transmit( 0xa ); //CHAR_TERM = new line  
+                    //USART_Transmit( 0xd ); //0xd = carriage return
+                    sbi(LEDPIN_PORT, LEDPIN_PIN );
+
+
+                }
+
+                if(CNC_COMMAND1==0b00000010)
+                {
+                    cbi(LEDPIN_PORT, LEDPIN_PIN );
+
+                }
+
+
+                if(CNC_COMMAND1==0b00000011)
+                {
+                    head_up();
+                }
+
+                if(CNC_COMMAND1==0b00000100)
+                {
+                    head_dwn();
+                }
+
+            
+            }//do what thou wilt inside this loop 
+        }//parse incoming commands
+    }//REPEAT FOREVER    
+
+}
+
 
 int main (void)
 {
@@ -346,12 +446,16 @@ int main (void)
 
     setup_interrupts();
     setup_ports();   
-
     setup_pwm();
     
+    //runloop();
+
     //test_chatterbox();
     //test_servo();
-    //test_pump();
+
+    test_pump();
+
+    //set_pump_pwm(300);
 
 } 
 
