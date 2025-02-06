@@ -1,7 +1,7 @@
 
 
 
-PROJECT=pumphead
+PROJECT=printhead
 SOURCES=./$(PROJECT).c
 
 

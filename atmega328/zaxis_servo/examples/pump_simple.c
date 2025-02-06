@@ -18,14 +18,19 @@
 
 
 /*
-    outputs on pin PB1 /"pin 9" on arduino 
-    runs on 16mhz atmega328p running full speed with external xtal 
+   WIRING 
 
+   CNC GPIO 
+   CNC GPIO 
+   
+   CNC GPIO  data bit 0 
+   CNC GPIO  data bit 1 
+   CNC GPIO  data bit 2
+   CNC GPIO  data bit 3
+      
 
-    20MS Period is 50Hz 
-    Center pos = 1500us - 1.5 MS
-    +90        = 2000us - 2   MS 
-    -90        = 1000us - 1   MS     
+   servo PWM 
+
 
 */
 
