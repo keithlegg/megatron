@@ -2,27 +2,23 @@
     WIRING 
 
 
-    data is 4 bits (HAL digital out) with the (spindle on, falling edge ) as a trigger to load the byte   
+    data is 4 bits (HAL digital out) with the (coolant mist, falling edge ) as a trigger to load the byte   
     ------------------------
-    # HAL PINS
-    8  = coolant mist (M7     /M9    )
-    9  = digital 0    (M64 Pn /M65 Pn)    
-    14 = digital 1    (M64 Pn /M65 Pn)
-    16 = digital 2    (M64 Pn /M65 Pn)
-    17 = digital 3    (M64 Pn /M65 Pn) 
-    
-    ------------------------
-    # NANO PINS
-    
-    0 - PD2 - (arduino )    cnc coolant mist
-    1 - PD3 - (arduino )    cnc d0 
-    2 - PD4 - (arduino )    cnc d1
-    3 - PD5 - (arduino )    cnc d2
-    4 - PD5 - (arduino )    cnc d3
-        PB0 - (arduino D8)  pump mosfet
-        PB1 - (arduino D9)  servo pwm
+    # HAL PINS -> 4 bit parallel bata bus 
 
-        # PB2 - pump PWM 
+    8  = coolant mist (M7     /M9    ) ->  0 - PD2 - (arduino )    cnc coolant mist
+    9  = digital 0    (M64 Pn /M65 Pn) ->  1 - PD3 - (arduino )    cnc d0    
+    14 = digital 1    (M64 Pn /M65 Pn) ->  2 - PD4 - (arduino )    cnc d1
+    16 = digital 2    (M64 Pn /M65 Pn) ->  3 - PD5 - (arduino )    cnc d2
+    17 = digital 3    (M64 Pn /M65 Pn) ->  4 - PD5 - (arduino )    cnc d3 
+    
+    ------------------------
+    # other microcontroller pins
+
+    PB1/OC1A - (arduino D9)   servo pwm
+    PB2/OC1B - (arduino D10)  pump mosfet pwm
+
+
 
 */
 
