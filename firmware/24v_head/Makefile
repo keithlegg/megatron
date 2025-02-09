@@ -1,8 +1,8 @@
 
-PROJECT=blink
+PROJECT=main
 
 
-SOURCES=src/CY7C109BN_SRAM.c
+SOURCES=src/printhead.c src/prnt_head_uart.c $(PROJECT).c 
 
 
 

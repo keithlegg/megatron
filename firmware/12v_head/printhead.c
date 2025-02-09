@@ -73,7 +73,19 @@
 
 
 
+void mydelay(uint16_t time)
+{
+    uint16_t t=0; 
+    for(t=0;t<time;t++) 
+    {
+        asm( "nop ");
+    }
+    for(t=0;t<time;t++) 
+    {
+        asm( "nop ");
+    }
 
+}
 /***********************************************/
 
 volatile uint8_t stale;
@@ -252,7 +264,8 @@ void pump_pulse(uint16_t time, uint16_t power)
     uint16_t t=0; 
     for(t=0;t<time;t++) 
     {
-        _delay_us(PUMP_PULSE_DURATION);    
+        //_delay_us(PUMP_PULSE_DURATION);    
+        asm( "nop ");
     }
 
     set_pump_pwm(0);
@@ -260,36 +273,40 @@ void pump_pulse(uint16_t time, uint16_t power)
 
 }
 
-void run_pump_dwn(void)
+void run_pump_dwn(uint8_t movehead)
 {
-    head_dwn();
+    
+    uint16_t delay=1500;
+    
 
+    if(movehead)head_dwn();
+    _delay_ms(1000);
+    
     pump_pulse(1500, 500);
-    _delay_ms(500);
+    _delay_ms(delay);
 
     pump_pulse(1500, 1000);
-    _delay_ms(500);
+    _delay_ms(delay);
 
     pump_pulse(1500, 1500);    
-    _delay_ms(500);
+    _delay_ms(delay);
 
     pump_pulse(1500, 2000);
-    _delay_ms(500);
+    _delay_ms(delay);
 
     pump_pulse(1500, 2500);
-    _delay_ms(500);
+    _delay_ms(delay);
+ 
+    if(movehead)head_up(); 
+    _delay_ms(1000);
 
-    pump_pulse(1500, 3000);
-    _delay_ms(500);
-
-    head_up();    
 }
 
 void test_pump(void)
 {
-    while(1){
-        run_pump_dwn();
-        _delay_ms(1500);
+    while(1)
+    {
+        run_pump_dwn(true);
     }  
 }
  
@@ -430,9 +447,9 @@ void runloop(void)
 
 int main (void)
 {
+ 
     USART_Init(MYUBRR);
     sei(); 
-
     setup_interrupts();
     setup_ports();   
     setup_pwm();
@@ -442,9 +459,20 @@ int main (void)
     //test_chatterbox();
     //test_servo();
 
-    test_pump();
+    //test_pump();
 
     //set_pump_pwm(300);
+
+    set_servo_pwm(400);
+    _delay_ms(1000);
+    
+    set_servo_pwm(250);
+    _delay_ms(1000);
+
+
+
+
+
 
 } 
 
