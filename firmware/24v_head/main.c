@@ -49,42 +49,32 @@
 
 
 
-//MACHINE PARAMETERS
-
-//servo response time
-#define SERVO_DEL_MS 2
-
-//pump head travel (PWM COUNTER==POSITION @20ms pulses)
-#define HEAD_UP_EXTENT 400
-#define HEAD_DWN_EXTENT 250
-
-//"atomic unit" of sweet pumping action
-//maybe not needed because I got pump wired to the second PWM 
-#define PUMP_PULSE_DURATION 500
-
+/***************************/
+// hardware pinout defines 
 
 #define LEDPIN_PORT PORTB
 #define LEDPIN_PIN 5
 #define LEDPIN_DDR DDRB
 
-#define BIT_ON 0x30 //ascii 1
-#define BIT_OFF 0x31 //ascii 0
+#define PUMPDIR_PORT PORTB
+#define PUMPDIR_PIN 5
+#define PUMPDIR_DDR DDRB
 
-#define sbi(a, b) (a) |= (1 << (b))
-#define cbi(a, b) (a) &= ~(1 << (b))
+
+/***************************/
 
 
 volatile uint8_t stale;
 volatile uint8_t BYTE_BUFFER;
 
+
+//uint8_t byte_count   = 0;
 uint8_t word_count   = 0;
 
 uint8_t CNC_COMMAND1 = 0;
-
-
-//uint8_t byte_count   = 0;
 //uint8_t CNC_COMMAND2 = 0;
 //uint8_t CNC_COMMAND3 = 0;
+
 //height of Z (servo rotation) 
 //uint16_t Z_HEIGHT = 0;
 
@@ -103,14 +93,15 @@ void test_chatterbox(void)
                 CNC_COMMAND1 =  reverse_bits(BYTE_BUFFER);
                 word_count++;
                 stale=1; 
+
+                send_txt_1byte(BYTE_BUFFER);
+                USART_Transmit( 0xa ); //CHAR_TERM = new line  
+                USART_Transmit( 0xd ); //0xd = carriage return
+
             }else{
                 CNC_COMMAND1 |= reverse_bits(BYTE_BUFFER)>>4 ;
                 word_count=0;
-             
                 stale=1;                                 
-                send_txt_1byte(CNC_COMMAND1);
-                USART_Transmit( 0xa ); //CHAR_TERM = new line  
-                USART_Transmit( 0xd ); //0xd = carriage return
             } 
             
             //TODO set up a way to store every 3rd byte 
@@ -133,6 +124,7 @@ void runloop(void)
         {
             if(word_count==0)
             {
+
                 CNC_COMMAND1 =  reverse_bits(BYTE_BUFFER);
                 word_count++;
                 stale=1; 
@@ -143,12 +135,12 @@ void runloop(void)
                 word_count=0;
                 stale=1;  
 
-                /*
-                for debugging                               
+                /* 
+                // for debugging                               
                 send_txt_1byte(CNC_COMMAND1);
                 USART_Transmit( 0xa ); //CHAR_TERM = new line  
                 USART_Transmit( 0xd ); //0xd = carriage return
-                */
+                */ 
 
                 if(CNC_COMMAND1==0b00000001)
                 {
@@ -191,49 +183,62 @@ void runloop(void)
 int main (void)
 {
  
+    /*******/
+    // machine setup  
     USART_Init(MYUBRR);
-    sei(); 
     setup_interrupts();
     setup_ports();   
     setup_pwm();
-    
+    sei(); 
+    stale=1; 
+
+    /*******/
+    // machine is ready to play now 
+
+
     //runloop();
 
-    //test_chatterbox();
+    test_chatterbox();
+    
     //test_servo();
-
-
-    set_pump_pwm(500);
-
     //test_pump();
 
     //set_pump_pwm(300);
-    
-    /*
-    while(1)
-    {
-        USART_Transmit(0x42);
-        _delay_ms(1000);
-
-    }*/
 
 
 } 
 
 
 /***********************************************/
+ 
 // wired to the "coolant mist" line to trigger a 4 bit bus transfer  
-ISR (INT0_vect)
+ISR (INT4_vect)
 {
-    BYTE_BUFFER = PIND>>3; 
+    BYTE_BUFFER = PINF; 
     stale=0;
 }
 
-/* 
-ISR (INT1_vect)
-{
+// ISR (INT1_vect)
+// {
+//     BYTE_BUFFER = PINF; 
+//     stale=0;
+// }
+ 
 
-}*/
+
+ 
+/*
+//this fires on falling OR rising 
+//use INT instead of PCINT 
+
+ISR (PCINT1_vect)
+{
+    BYTE_BUFFER = PINF; 
+    stale=0;
+
+}
+*/
+ 
 
  
 

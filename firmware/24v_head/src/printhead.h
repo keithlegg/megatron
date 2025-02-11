@@ -55,6 +55,8 @@ void set_pump_pwm (uint16_t val);
 
 void setup_ports (void);
 void setup_interrupts(void);
+void setup_pc_interrupts(void);
+
 void setup_pwm (void);
 
 void head_up(void);

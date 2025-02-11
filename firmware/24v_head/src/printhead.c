@@ -73,26 +73,36 @@ void set_pump_pwm (uint16_t val)
 /***********************************************/
 void setup_ports (void)
 {
+    //DEBUG - THESE MAY OR MAY NOT BE RELEVANT TO THE 2560 
+    //RTFM 
 
     DDRB = 0xff;
-    DDRD = 0x00;              // all but lower bit 
-    //DDRD &= ~(1 << DDD2);    //PD2 is pin change interrupt (wired to coolant mist)
+    DDRJ = 0x00; //external interrupt pins 
+    DDRF = 0x00; //4 bit - CNC data inputs             
+
     //DDRD &= ~(1 << 2);  // PD4 input (D2 arduino) 
 
 }
 
 /***********************************************/
+void setup_pc_interrupts(void)
+{
+    //pin change is not what you want - but interesting to look at 
+    //this triggers on rising AND falling edge 
+
+    // wacky interrupts on 2560: https://forum.arduino.cc/t/enable-interrupt/259014/8
+    PCICR  |= (1 << PCIE1 );  // datasheet page 112 says this activates PCINT 15:8 
+    PCMSK1 |= (1 << PCINT9);  // specify which pins trigger the interrupt here
+}
+
+/***********************************************/
 void setup_interrupts(void)
 {
-
-    // Interrupt 0 Sense Control
-    EICRA |= (1 << ISC01); // trigger on falling edge
-    // Interrupt 1 Sense Control
-    EICRA |= (1 << ISC11); // trigger on falling edge
-    // External Interrupt Mask Register
     
-    //EIMSK |= (1 << INT0);             // Turns on INT0 
-    EIMSK |= (1 << INT0)|(1 << INT1);   // Turns on INT0 and INT1
+    EIMSK |=  (1<<INT4);  // Enables external interrupt INT4.
+
+    //EICRB &=! (1<<ISC41); // DEBUG THIS IS BAD - DO WHAT IS BELOW - INVESTIGATE 
+    EICRB |= _BV(ISC41); // Configures INT4 to trigger on a falling edge.
 
     //stale=1;
 }

@@ -30,7 +30,7 @@ void USART_Init( unsigned int ubrr)
    // Set frame format: 8data, 2stop bit 
    UCSR0C = (1<<USBS0)|(3<<UCSZ00);
 
-   UCSR0B |= (1 << RXCIE0); //+interupt
+   //UCSR0B |= (1 << RXCIE0); //+interupt
 
 }
 
