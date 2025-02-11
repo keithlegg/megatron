@@ -1,23 +1,44 @@
 /*
-    WIRING 
+    24 Volt print head wiring (will run at 12 Volt also) 
 
+    Data protocol - 4 bit frame (HAL digital out 0-3) with the (coolant mist, falling edge ) as a latch   
+    -----------------------------------------------
+    ## HAL PINS -> 4 bit parallel bata bus 
 
-    data is 4 bits (HAL digital out) with the (coolant mist, falling edge ) as a trigger to load the byte   
-    ------------------------
-    # HAL PINS -> 4 bit parallel bata bus 
-
-    8   ->   HAL:coolant mist (M7     /M9    )   ->  PD2  
-    9   ->   HAL:digital 0    (M64 Pn /M65 Pn)   ->  PD3      
-    14  ->   HAL:digital 1    (M64 Pn /M65 Pn)   ->  PD4  
-    16  ->   HAL:digital 2    (M64 Pn /M65 Pn)   ->  PD5  
-    17  ->   HAL:digital 3    (M64 Pn /M65 Pn)   ->  PD5   
+    6   ->   HAL:Z STEP                          ->  PE5/INT5 (Ard D3)  
+    7   ->   HAL:Z DIR                           ->  PG5      (Ard D4)
+    -----------------------------------------------
+    8   ->   HAL:coolant mist (M7     /M9    )   ->  PE4/INT4 (Ard D)  
+    9   ->   HAL:digital 0    (M64 Pn /M65 Pn)   ->  PF0      (Ard D)       
+    14  ->   HAL:digital 1    (M64 Pn /M65 Pn)   ->  PF1      (Ard D)   
+    16  ->   HAL:digital 2    (M64 Pn /M65 Pn)   ->  PF2      (Ard D)   
+    17  ->   HAL:digital 3    (M64 Pn /M65 Pn)   ->  PF3      (Ard D)   
+    -----------------------------------------------
+    ## OTHER GPIO PINS
     
-    ------------------------
-    # other microcontroller pins
+    PB1/OC1A     - - - - - - - - - - - - - - - - -> (Ard D9)   servo pwm
+    
+    PB2/OC1B     - - - - - - - - - - - - - - - - -> (Ard D10)  pump mosfet pwm
+    PUMPDIR      - - - - - - - - - - - - - - - - -> 
 
-    PB1/OC1A - (arduino D9)   servo pwm
-    PB2/OC1B - (arduino D10)  pump mosfet pwm
+    onboard LED  - - - - - - - - - - - - - - - - -> PB7 (Ard D13)
+    RGB R        - - - - - - - - - - - - - - - - ->     
+    RGB G        - - - - - - - - - - - - - - - - ->     
+    RGB B        - - - - - - - - - - - - - - - - ->     
+ 
+    -----------------------------------------------
+    -----------------------------------------------
 
+    RIBBON CABLE TO PRINTHEAD
+
+    0 - 4 bit data latch 
+    1 - D0 (data line) 
+    2 - D1 (data line)
+    3 - D2 (data line)
+    4 - D3 (data line)
+    5 - GND
+    6 - ZSTEP
+    7 - ZDIR 
 
 
 */
@@ -49,19 +70,6 @@
 
 
 
-/***************************/
-// hardware pinout defines 
-
-#define LEDPIN_PORT PORTB
-#define LEDPIN_PIN 5
-#define LEDPIN_DDR DDRB
-
-#define PUMPDIR_PORT PORTB
-#define PUMPDIR_PIN 5
-#define PUMPDIR_DDR DDRB
-
-
-/***************************/
 
 
 volatile uint8_t stale;
@@ -75,8 +83,9 @@ uint8_t CNC_COMMAND1 = 0;
 //uint8_t CNC_COMMAND2 = 0;
 //uint8_t CNC_COMMAND3 = 0;
 
-//height of Z (servo rotation) 
-//uint16_t Z_HEIGHT = 0;
+// count of Z axis pulses from LinuxCNC  
+uint16_t Z_PULSE      = 512;
+uint16_t LAST_Z_PULSE = 0;
 
 
 
@@ -93,15 +102,17 @@ void test_chatterbox(void)
                 CNC_COMMAND1 =  reverse_bits(BYTE_BUFFER);
                 word_count++;
                 stale=1; 
-
-                send_txt_1byte(BYTE_BUFFER);
-                USART_Transmit( 0xa ); //CHAR_TERM = new line  
-                USART_Transmit( 0xd ); //0xd = carriage return
-
             }else{
                 CNC_COMMAND1 |= reverse_bits(BYTE_BUFFER)>>4 ;
                 word_count=0;
                 stale=1;                                 
+                
+                /*for debugging
+                send_txt_1byte(CNC_COMMAND1);
+                USART_Transmit( 0xa ); //CHAR_TERM = new line  
+                USART_Transmit( 0xd ); //0xd = carriage return
+                */
+
             } 
             
             //TODO set up a way to store every 3rd byte 
@@ -118,10 +129,13 @@ void runloop(void)
 
     while(1)
     { 
-        //FETCH COMMAND FROM CNC  
-        //assemble 2 4bits into an 8bit byte  
+        /**********************************/ 
+        //FETCH COMMANDS FROM LINUXCNC   
         if(stale==0)
-        {
+        {   /*bytes come in as 2X4 bit serialized frames. Not ideal, but we only get 4 data lines 
+              pretty slow - about a second or two for a byte. The system wasnt designed to be used this way
+              the cool thing is we can arbitrarily embed data directly in Gcode  
+            */
             if(word_count==0)
             {
 
@@ -129,7 +143,7 @@ void runloop(void)
                 word_count++;
                 stale=1; 
             }
-            else /////////////////////////////////////////
+            else  
             {
                 CNC_COMMAND1 |= reverse_bits(BYTE_BUFFER)>>4 ;
                 word_count=0;
@@ -144,18 +158,12 @@ void runloop(void)
 
                 if(CNC_COMMAND1==0b00000001)
                 {
-                    //USART_Transmit(0x42);
-                    //USART_Transmit( 0xa ); //CHAR_TERM = new line  
-                    //USART_Transmit( 0xd ); //0xd = carriage return
                     sbi(LEDPIN_PORT, LEDPIN_PIN );
-
-
                 }
 
                 if(CNC_COMMAND1==0b00000010)
                 {
                     cbi(LEDPIN_PORT, LEDPIN_PIN );
-
                 }
 
 
@@ -168,10 +176,19 @@ void runloop(void)
                 {
                     head_dwn();
                 }
-
             
             }//do what thou wilt inside this loop 
         }//parse incoming commands
+
+        /**********************************/ 
+        //update Z servo 
+        if(LAST_Z_PULSE!=Z_PULSE)
+        {
+            send_txt_2bytes(Z_PULSE, true, true);
+        }
+        LAST_Z_PULSE = Z_PULSE; 
+
+
     }//REPEAT FOREVER    
 
 }
@@ -190,20 +207,24 @@ int main (void)
     setup_ports();   
     setup_pwm();
     sei(); 
+    
     stale=1; 
+    sbi(LEDPIN_PORT, LEDPIN_PIN );
 
     /*******/
     // machine is ready to play now 
 
 
-    //runloop();
 
-    test_chatterbox();
+    runloop();
     
-    //test_servo();
+
     //test_pump();
 
     //set_pump_pwm(300);
+    
+    //test_servo();    
+    //test_chatterbox();
 
 
 } 
@@ -217,6 +238,19 @@ ISR (INT4_vect)
     BYTE_BUFFER = PINF; 
     stale=0;
 }
+
+// wired to Z step   
+ISR (INT5_vect)
+{
+    if ((PING & (1 << PING5)) == (1 << PING5)) 
+    {
+        Z_PULSE--;
+    }else{
+        Z_PULSE++;        
+    }
+
+}
+
 
 // ISR (INT1_vect)
 // {

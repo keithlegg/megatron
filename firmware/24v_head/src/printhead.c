@@ -19,6 +19,12 @@
 
 
 
+
+
+/***************************/
+
+
+
 //MACHINE PARAMETERS
 
 //servo response time
@@ -40,6 +46,7 @@
 #define LEDPIN_PORT PORTB
 #define LEDPIN_PIN 5
 #define LEDPIN_DDR DDRB
+
 
 
 
@@ -73,14 +80,11 @@ void set_pump_pwm (uint16_t val)
 /***********************************************/
 void setup_ports (void)
 {
-    //DEBUG - THESE MAY OR MAY NOT BE RELEVANT TO THE 2560 
-    //RTFM 
-
+    
     DDRB = 0xff;
-    DDRJ = 0x00; //external interrupt pins 
     DDRF = 0x00; //4 bit - CNC data inputs             
-
-    //DDRD &= ~(1 << 2);  // PD4 input (D2 arduino) 
+    
+    DDRG &= ~(1 << 5);  // PG5 input (D4 arduino) 
 
 }
 
@@ -100,9 +104,14 @@ void setup_interrupts(void)
 {
     
     EIMSK |=  (1<<INT4);  // Enables external interrupt INT4.
+    EIMSK |=  (1<<INT5);  // Enables external interrupt INT5.
 
     //EICRB &=! (1<<ISC41); // DEBUG THIS IS BAD - DO WHAT IS BELOW - INVESTIGATE 
     EICRB |= _BV(ISC41); // Configures INT4 to trigger on a falling edge.
+
+    EICRB |= _BV(ISC51); // // Configures INT5 to trigger on a falling edge.
+
+    //EIMSK |=  (1<<INT4);  // Enables external interrupt INT4.
 
     //stale=1;
 }
@@ -147,6 +156,28 @@ void test_servo(void)
 void head_up(void)
 {
     set_servo_pwm(HEAD_UP_EXTENT);
+}
+
+void pulse_head_up(uint16_t coord)
+{
+    send_txt_2bytes(coord, true, true);
+
+    if(coord<HEAD_UP_EXTENT && coord>HEAD_DWN_EXTENT)
+    {
+
+    }
+    //set_servo_pwm(HEAD_UP_EXTENT);
+}
+
+void pulse_head_dwn(uint16_t coord)
+{
+        send_txt_2bytes(coord, true, true);
+        
+    if(coord<HEAD_UP_EXTENT && coord>HEAD_DWN_EXTENT)
+    {
+
+    }
+    //set_servo_pwm(HEAD_UP_EXTENT);
 }
 
 /***********************************************/

@@ -8,6 +8,43 @@
 
 
 
+/***************************/
+// GPIO pinouts 
+
+
+//onboard LED
+#define LEDPIN_PORT PORTB
+#define LEDPIN_PIN 7
+
+
+/*
+//#define LEDPIN_DDR DDRB
+
+//RGB LED
+#define R_LEDPIN_PORT PORTB
+#define R_LEDPIN_PIN 5
+#define R_LEDPIN_DDR DDRB
+#define G_LEDPIN_PORT PORTB
+#define G_LEDPIN_PIN 5
+#define G_LEDPIN_DDR DDRB
+#define B_LEDPIN_PORT PORTB
+#define B_LEDPIN_PIN 5
+#define B_LEDPIN_DDR DDRB
+
+// pump is controlled with a PWM out and a DIR pin 
+// the pump is normally going to run in one dir, but it may be cool to reverse in some cases  
+
+#define PUMPDIR_PORT PORTB
+#define PUMPDIR_PIN 5
+#define PUMPDIR_DDR DDRB
+
+//Z POS can be controlled with an interrupt for ZSTEP and a DIR pin 
+
+#define CNC_ZDIR_PORT PORTB
+#define CNC_ZDIR_PIN 5
+#define CNC_ZDIR_DR DDRB
+
+*/
 
 
 
@@ -59,6 +96,8 @@ void setup_pc_interrupts(void);
 
 void setup_pwm (void);
 
+void pulse_head_dwn(uint16_t);
+void pulse_head_up(uint16_t);
 void head_up(void);
 void head_dwn(void);
 
