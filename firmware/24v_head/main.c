@@ -131,6 +131,27 @@ void test_chatterbox(void)
 
 /********************************************/
 
+/*
+   #COMMANDS 
+   
+   0x02 head up 
+   0x04 head down 
+   0x06 head offset/brush_height  (16bit power)
+   0x08 pump on                   (16bit power)
+   0x0a pump off 
+   0x0c pump reverse 
+   
+   0x0e
+   0x10 
+   0x12 
+
+   # TODO - needs more thought  
+   #positional subroutine (chuck close)
+   #color mixer - multiple pumps 
+
+
+*/
+
 void runloop(void)
 {
 
