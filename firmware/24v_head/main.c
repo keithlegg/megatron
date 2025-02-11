@@ -16,6 +16,9 @@
     -----------------------------------------------
     ## OTHER GPIO PINS
     
+    # button - MACHINE RESET  (put all servos and pumps back to zero )
+    # button - PUMP PRIMER 
+
     PB1/OC1A     - - - - - - - - - - - - - - - - -> (Ard D9)   servo pwm
     
     PB2/OC1B     - - - - - - - - - - - - - - - - -> (Ard D10)  pump mosfet pwm
@@ -84,8 +87,11 @@ uint8_t CNC_COMMAND1 = 0;
 //uint8_t CNC_COMMAND3 = 0;
 
 // count of Z axis pulses from LinuxCNC  
-uint16_t Z_PULSE      = 512;
+uint16_t Z_PULSE      = 0;
 uint16_t LAST_Z_PULSE = 0;
+
+//PWM for Z SERVO 
+uint16_t Z_HEAD_POS = 0;
 
 
 
@@ -123,6 +129,7 @@ void test_chatterbox(void)
     }//endless loop
 }
 
+/********************************************/
 
 void runloop(void)
 {
@@ -184,7 +191,13 @@ void runloop(void)
         //update Z servo 
         if(LAST_Z_PULSE!=Z_PULSE)
         {
-            send_txt_2bytes(Z_PULSE, true, true);
+ 
+            //Z_HEAD_POS=200+(LAST_Z_PULSE/2); // HALF SPEED
+            Z_HEAD_POS=200+(LAST_Z_PULSE);      // FULL SPEED
+
+            //pulse_head_position(Z_HEAD_POS);
+            set_servo_pwm(Z_HEAD_POS);
+
         }
         LAST_Z_PULSE = Z_PULSE; 
 
@@ -214,15 +227,15 @@ int main (void)
     /*******/
     // machine is ready to play now 
 
-
-
     runloop();
     
-
-    //test_pump();
+    /*******/
 
     //set_pump_pwm(300);
-    
+    //test_pump();
+
+    //test_servo_positions(); DEBUG NOT DONE 
+
     //test_servo();    
     //test_chatterbox();
 
@@ -243,24 +256,16 @@ ISR (INT4_vect)
 ISR (INT5_vect)
 {
     if ((PING & (1 << PING5)) == (1 << PING5)) 
-    {
-        Z_PULSE--;
+    {   
+        if(Z_PULSE>0)Z_PULSE--;
     }else{
-        Z_PULSE++;        
+        if(Z_PULSE<65534)Z_PULSE++;        
     }
 
 }
 
 
-// ISR (INT1_vect)
-// {
-//     BYTE_BUFFER = PINF; 
-//     stale=0;
-// }
- 
-
-
- 
+/***********************************************/
 /*
 //this fires on falling OR rising 
 //use INT instead of PCINT 

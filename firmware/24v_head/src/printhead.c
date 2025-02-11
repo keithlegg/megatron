@@ -36,7 +36,7 @@
 
 //print head travel (PWM COUNTER==POSITION @20ms pulses)
 #define PUMP_MIN 200
-#define PUMP_MAX 1000
+#define PUMP_MAX 400
 
 //"atomic unit" of sweet pumping action
 //maybe not needed because I got pump wired to the second PWM 
@@ -68,7 +68,9 @@ void mydelay(uint16_t time)
 /***********************************************/
 void set_servo_pwm (uint16_t val)
 {
-    OCR1A = val;
+    if(val<=HEAD_UP_EXTENT||val>=HEAD_DWN_EXTENT){ OCR1A = val; }
+    //OCR1A = val;
+
 }
 
 /***********************************************/
@@ -134,6 +136,16 @@ void setup_pwm (void)
 }
 
 /***********************************************/
+
+void test_servo_positions(void)
+{
+    //0 degrees
+    //90 degrees 
+    //180 degrees 
+}
+
+
+
 void test_servo(void)
 {
     uint16_t cnt = 0; 
@@ -158,27 +170,18 @@ void head_up(void)
     set_servo_pwm(HEAD_UP_EXTENT);
 }
 
-void pulse_head_up(uint16_t coord)
+void pulse_head_position(uint16_t coord)
 {
-    send_txt_2bytes(coord, true, true);
 
     if(coord<HEAD_UP_EXTENT && coord>HEAD_DWN_EXTENT)
     {
-
-    }
-    //set_servo_pwm(HEAD_UP_EXTENT);
-}
-
-void pulse_head_dwn(uint16_t coord)
-{
+        set_servo_pwm(coord);
+    }else{
         send_txt_2bytes(coord, true, true);
-        
-    if(coord<HEAD_UP_EXTENT && coord>HEAD_DWN_EXTENT)
-    {
-
     }
-    //set_servo_pwm(HEAD_UP_EXTENT);
+
 }
+
 
 /***********************************************/
 void head_dwn(void)

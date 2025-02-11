@@ -83,30 +83,35 @@
 
 
 
-
+//utils 
 uint8_t reverse_bits(uint8_t);
-
 void mydelay(uint16_t);
-void set_servo_pwm (uint16_t);
-void set_pump_pwm (uint16_t val);
 
+//machine setup and config  
 void setup_ports (void);
 void setup_interrupts(void);
 void setup_pc_interrupts(void);
-
 void setup_pwm (void);
 
-void pulse_head_dwn(uint16_t);
-void pulse_head_up(uint16_t);
+//PWM stuff (pump and servo)
+void set_servo_pwm (uint16_t);
+void set_pump_pwm (uint16_t val);
+
+//servo commands
+void test_servo(void);
+void test_servo_positions(void);
+void pulse_head_position(uint16_t);
+//void pulse_head_up(uint16_t);
+
 void head_up(void);
 void head_dwn(void);
 
+//pump commands 
 void pump_pulse(uint16_t , uint16_t );
-
 void run_pump_dwn(uint8_t);
-
 void test_pump(void);
-void test_servo(void);
+
+//communication stuff
 void test_chatterbox(void);
 
 
