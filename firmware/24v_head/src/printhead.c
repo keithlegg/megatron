@@ -25,27 +25,7 @@
 
 
 
-//MACHINE PARAMETERS
 
-//servo response time
-#define SERVO_DEL_MS 2
-
-//print head travel (PWM COUNTER==POSITION @20ms pulses)
-#define HEAD_UP_EXTENT 400
-#define HEAD_DWN_EXTENT 250
-
-//print head travel (PWM COUNTER==POSITION @20ms pulses)
-#define PUMP_MIN 200
-#define PUMP_MAX 400
-
-//"atomic unit" of sweet pumping action
-//maybe not needed because I got pump wired to the second PWM 
-#define PUMP_PULSE_DURATION 500
-
-
-#define LEDPIN_PORT PORTB
-#define LEDPIN_PIN 5
-#define LEDPIN_DDR DDRB
 
 
 
@@ -74,19 +54,29 @@ void set_servo_pwm (uint16_t val)
 }
 
 /***********************************************/
-void set_pump_pwm (uint16_t val)
-{
-    OCR1B = val;
+void set_pump_pwm (uint16_t val, uint8_t dir)
+{   
+
+    if(dir)
+    {
+        cbi(PUMPDIR_PORT, PUMPDIR_HB_A_PIN );
+        sbi(PUMPDIR_PORT, PUMPDIR_HB_B_PIN );
+        OCR1B = val;
+    }else{
+        sbi(PUMPDIR_PORT, PUMPDIR_HB_A_PIN );
+        cbi(PUMPDIR_PORT, PUMPDIR_HB_B_PIN );
+        OCR1B = val;
+    }
 }
 
 /***********************************************/
 void setup_ports (void)
 {
-    
-    DDRB = 0xff;
-    DDRF = 0x00; //4 bit - CNC data inputs             
-    
-    DDRG &= ~(1 << 5);  // PG5 input (D4 arduino) 
+
+    DDRB        =   0xff;
+    PUMPDIR_DDR =   0x03;      // PortD - bridge A+B
+    DDRF        =   0xf0;      // 4 bit - CNC digital inputs 0-3             
+    DDRG        &= ~(1 << 5);  // PG5 input - Z direction (Z step is INT5_vect)
 
 }
 
@@ -127,11 +117,10 @@ void setup_pwm (void)
 
     //TCCR1A = (1 << COM1A1) | (1<<WGM11);               // servo only 
     TCCR1A = (1 << COM1A1) | (1 << COM1B1) | (1<<WGM11); //(servo + pump)
-
     TCCR1B = (1<<WGM13) | (1<<WGM12) | (1<<CS11) | (1<<CS10);    
 
     set_servo_pwm(HEAD_UP_EXTENT);
-    set_pump_pwm(PUMP_MIN);
+    set_pump_pwm(PUMP_MIN, 0);
  
 }
 
@@ -190,12 +179,12 @@ void head_dwn(void)
 }
 
 /***********************************************/
-
+/*
 void pump_pulse(uint16_t time, uint16_t power)
 {
 
     sbi(LEDPIN_PORT, LEDPIN_PIN );
-    set_pump_pwm(power);
+    set_pump_pwm(power, 0);
 
     uint16_t t=0; 
     for(t=0;t<time;t++) 
@@ -204,7 +193,7 @@ void pump_pulse(uint16_t time, uint16_t power)
         asm( "nop ");
     }
 
-    set_pump_pwm(0);
+    set_pump_pwm(0, 0);
     cbi(LEDPIN_PORT, LEDPIN_PIN );
 
 }
@@ -237,12 +226,21 @@ void run_pump_dwn(uint8_t movehead)
     _delay_ms(1000);
 
 }
+*/
 
 void test_pump(void)
 {
     while(1)
     {
-        run_pump_dwn(false);
+        //run_pump_dwn(false);
+        
+        set_pump_pwm(512, true);
+        _delay_ms(2000);
+
+        set_pump_pwm(512, false);
+        _delay_ms(2000);
+                         
+
     }  
 }
 

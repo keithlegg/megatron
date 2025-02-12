@@ -21,8 +21,9 @@
 
     PB1/OC1A     - - - - - - - - - - - - - - - - -> (Ard D9)   servo pwm
     
-    PB2/OC1B     - - - - - - - - - - - - - - - - -> (Ard D10)  pump mosfet pwm
-    PUMPDIR      - - - - - - - - - - - - - - - - -> 
+    PB2/OC1B       - - - - - - - - - - - - - - - -> (Ard D10)  pump mosfet pwm
+    PUMP_BRIDGE_A  - - - - - - - - - - - - - - - -> 
+    PUMP_BRIDGE_B  - - - - - - - - - - - - - - - -> 
 
     onboard LED  - - - - - - - - - - - - - - - - -> PB7 (Ard D13)
     RGB R        - - - - - - - - - - - - - - - - ->     
@@ -47,24 +48,19 @@
 */
 
 
-//#define __DELAY_BACKWARD_COMPATIBLE__
+ 
 
+//## define __DELAY_BACKWARD_COMPATIBLE__
 
 #define F_CPU 16000000L // Define software reference clock for delay duration
 #define FOSC 16000000L // Clock Speed
-#define BAUD 115200
 #define MYUBRR 8
 
-#define PWM_PRESCALLER 64
-#define ICR_MAX (long double)F_CPU/PWM_PRESCALLER/50
-#define OCR_MIN ICR_MAX/20
-#define OCR_MAX ICR_MAX/10
-
-
 #include <avr/io.h>
+#include <stdlib.h>
 #include <util/delay.h>
 #include <avr/interrupt.h>
-#include <stdlib.h>
+
 
 
 
@@ -74,63 +70,97 @@
 
 
 
-
+//---------
+//stuff for interrupts 
 volatile uint8_t stale;
 volatile uint8_t BYTE_BUFFER;
 
-
+//---------
 //uint8_t byte_count   = 0;
 uint8_t word_count   = 0;
-
 uint8_t CNC_COMMAND1 = 0;
 //uint8_t CNC_COMMAND2 = 0;
 //uint8_t CNC_COMMAND3 = 0;
+uint8_t good_com = 0;
 
+//---------
 // count of Z axis pulses from LinuxCNC  
 uint16_t Z_PULSE      = 0;
 uint16_t LAST_Z_PULSE = 0;
-
 //PWM for Z SERVO 
 uint16_t Z_HEAD_POS = 0;
 
 
 
-/***********************************************/
-void test_chatterbox(void)
-{
-    while(1)
-    {
-        //assemble 2 4bits into an 8bit byte  
-        if(stale==0)
-        {
-            if(word_count==0)
-            {
-                CNC_COMMAND1 =  reverse_bits(BYTE_BUFFER);
-                word_count++;
-                stale=1; 
-            }else{
-                CNC_COMMAND1 |= reverse_bits(BYTE_BUFFER)>>4 ;
-                word_count=0;
-                stale=1;                                 
-                
-                /*for debugging
-                send_txt_1byte(CNC_COMMAND1);
-                USART_Transmit( 0xa ); //CHAR_TERM = new line  
-                USART_Transmit( 0xd ); //0xd = carriage return
-                */
 
-            } 
-            
-            //TODO set up a way to store every 3rd byte 
-            /* if(byte_count==2){}*/
-
-
-        }//data in rx buffer 
-    }//endless loop
-}
 
 /********************************************/
+void startup_delay(void)
+{
+    for(uint8_t x=0;x<3;x++)
+    { 
+        cbi(LEDPIN_PORT, LEDPIN_PIN );
+        _delay_ms(300);
+        sbi(LEDPIN_PORT, LEDPIN_PIN );
+        _delay_ms(300);
+    }
+    cbi(LEDPIN_PORT, LEDPIN_PIN );
 
+}
+
+void command_rx_pulse(void)
+{
+    /* 
+    cbi(LEDPIN_PORT, LEDPIN_PIN );
+    _delay_ms(40);
+    sbi(LEDPIN_PORT, LEDPIN_PIN );
+    _delay_ms(40);
+    cbi(LEDPIN_PORT, LEDPIN_PIN );
+    */
+
+
+    sbi(LEDPIN_PORT, LEDPIN_PIN );
+    _delay_ms(20);
+    cbi(LEDPIN_PORT, LEDPIN_PIN );
+    _delay_ms(50);
+    sbi(LEDPIN_PORT, LEDPIN_PIN );
+    _delay_ms(20);
+    cbi(LEDPIN_PORT, LEDPIN_PIN );
+
+}
+
+// set all the state machines back to defaults 
+void soft_reset(void)
+{
+    stale=1;
+
+    //pump PWM 
+    //pump PWM + DIR
+    
+    set_servo_pwm(HEAD_UP_EXTENT);
+    set_pump_pwm(PUMP_MIN, 0);
+
+    //LEDs
+
+    //clear Z pulses 
+    Z_PULSE      = 0;
+    LAST_Z_PULSE = 0;
+    Z_HEAD_POS   = 0;
+
+    //clear command buffers, etc
+    //CNC_COMMAND1 = 0;
+    //CNC_COMMAND2 = 0;
+    //CNC_COMMAND3 = 0;
+    
+    //good_com=0;
+
+    //wait 5 seconds on reset 
+    startup_delay();
+
+}
+
+
+/********************************************/
 /*
    #COMMANDS 
    
@@ -154,7 +184,6 @@ void test_chatterbox(void)
 
 void runloop(void)
 {
-
     while(1)
     { 
         /**********************************/ 
@@ -183,44 +212,85 @@ void runloop(void)
                 USART_Transmit( 0xa ); //CHAR_TERM = new line  
                 USART_Transmit( 0xd ); //0xd = carriage return
                 */ 
-
-                if(CNC_COMMAND1==0b00000001)
+                
+                //soft reset  
+                if(CNC_COMMAND1==0x01)
                 {
-                    sbi(LEDPIN_PORT, LEDPIN_PIN );
+                    //soft_reset();
                 }
 
-                if(CNC_COMMAND1==0b00000010)
+                //dwell
+                if(CNC_COMMAND1==0x02)
                 {
-                    cbi(LEDPIN_PORT, LEDPIN_PIN );
+                    //sbi(LEDPIN_PORT, LEDPIN_PIN );
+                    good_com=1;                    
                 }
 
-
-                if(CNC_COMMAND1==0b00000011)
+                //head_up
+                if(CNC_COMMAND1==0x04)
                 {
-                    head_up();
+                    //head_up();
+                    good_com=1;                    
                 }
 
-                if(CNC_COMMAND1==0b00000100)
+                //head_dwn
+                if(CNC_COMMAND1==0x06)
                 {
-                    head_dwn();
+                    //head_up();
+                    good_com=1;
                 }
-            
+
+                //16bit (set) z_offset
+                if(CNC_COMMAND1==0x08)
+                {
+                    //head_dwn();
+                    good_com=1;                    
+                }
+
+                //pump_on
+                if(CNC_COMMAND1==0x0a)
+                {
+                    //head_dwn();
+                    good_com=1;                    
+                }
+                
+                //pump_off
+                if(CNC_COMMAND1==0x0c)
+                {
+                    //head_dwn();
+                    good_com=1;                    
+                }
+                
+                //pump_rev
+                if(CNC_COMMAND1==0x0e)
+                {
+                    //head_dwn();
+                    good_com=1;                    
+                }
+                
+                if(good_com==1)
+                {
+                    command_rx_pulse();
+                    good_com=0;
+                }
             }//do what thou wilt inside this loop 
         }//parse incoming commands
 
         /**********************************/ 
-        //update Z servo 
+        //UPDATE SERVO POSITION
+
         if(LAST_Z_PULSE!=Z_PULSE)
         {
  
-            //Z_HEAD_POS=200+(LAST_Z_PULSE/2); // HALF SPEED
-            Z_HEAD_POS=200+(LAST_Z_PULSE);      // FULL SPEED
+            Z_HEAD_POS=200+(LAST_Z_PULSE/5); // HALF SPEED
+            //Z_HEAD_POS=200+(LAST_Z_PULSE);     // FULL SPEED
 
             //pulse_head_position(Z_HEAD_POS);
             set_servo_pwm(Z_HEAD_POS);
 
         }
         LAST_Z_PULSE = Z_PULSE; 
+        /**********************************/ 
 
 
     }//REPEAT FOREVER    
@@ -241,28 +311,62 @@ int main (void)
     setup_ports();   
     setup_pwm();
     sei(); 
-    
-    stale=1; 
-    sbi(LEDPIN_PORT, LEDPIN_PIN );
+    soft_reset();
 
     /*******/
     // machine is ready to play now 
 
-    runloop();
+    
+    //runloop();
     
     /*******/
-
-    //set_pump_pwm(300);
     //test_pump();
 
     //test_servo_positions(); DEBUG NOT DONE 
+    //test_servo(); 
 
-    //test_servo();    
-    //test_chatterbox();
+   
+    test_chatterbox();
 
 
 } 
 
+
+
+/***********************************************/
+void test_chatterbox(void)
+{
+    uint8_t DEBUG = true;
+
+    while(1)
+    {
+        //assemble 2 4bits into an 8bit byte  
+        if(stale==0)
+        {
+            if(word_count==0)
+            {
+                CNC_COMMAND1 =  reverse_bits(BYTE_BUFFER);
+                word_count++;
+                stale=1; 
+            }else{
+                CNC_COMMAND1 |= reverse_bits(BYTE_BUFFER)>>4 ;
+                word_count=0;
+                stale=1;                                 
+                
+                if(DEBUG)
+                {
+                    send_txt_1byte(CNC_COMMAND1);
+                    USART_Transmit( 0xa ); //CHAR_TERM = new line  
+                    USART_Transmit( 0xd ); //0xd = carriage return
+                }
+            } 
+            
+            //TODO set up a way to store every 3rd byte 
+            /* if(byte_count==2){}*/
+
+        }//data in rx buffer 
+    }//endless loop
+}
 
 /***********************************************/
  
@@ -271,11 +375,13 @@ ISR (INT4_vect)
 {
     BYTE_BUFFER = PINF; 
     stale=0;
+
 }
 
 // wired to Z step   
 ISR (INT5_vect)
 {
+    //read direction pin and (dec/inc)crement Z position
     if ((PING & (1 << PING5)) == (1 << PING5)) 
     {   
         if(Z_PULSE>0)Z_PULSE--;
@@ -286,18 +392,14 @@ ISR (INT5_vect)
 }
 
 
+
+
+
 /***********************************************/
-/*
-//this fires on falling OR rising 
-//use INT instead of PCINT 
 
-ISR (PCINT1_vect)
-{
-    BYTE_BUFFER = PINF; 
-    stale=0;
+// this fires on falling OR rising 
+//ISR (PCINT1_vect){}
 
-}
-*/
  
 
  

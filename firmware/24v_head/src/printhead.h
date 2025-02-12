@@ -1,21 +1,23 @@
 #ifndef _PRINTHEAD_
 #define _PRINTHEAD_
 
+#include <avr/io.h>
 
 
 
+#define BIT_ON 0x30 //ascii 1
+#define BIT_OFF 0x31 //ascii 0
 
-
-
+#define sbi(a, b) (a) |= (1 << (b))
+#define cbi(a, b) (a) &= ~(1 << (b))
 
 /***************************/
 // GPIO pinouts 
 
-
 //onboard LED
 #define LEDPIN_PORT PORTB
 #define LEDPIN_PIN 7
-
+#define LEDPIN_DDR DDRB
 
 /*
 //#define LEDPIN_DDR DDRB
@@ -49,38 +51,28 @@
 
 
 
-
-
-
-#include <avr/io.h>
-//#include <util/delay.h>
-//#include <avr/interrupt.h>
-//#include <stdlib.h>
-
-
-/*
 //MACHINE PARAMETERS
 
 //servo response time
 #define SERVO_DEL_MS 2
 
-//pump head travel (PWM COUNTER==POSITION @20ms pulses)
+//print head travel (PWM COUNTER==POSITION @20ms pulses)
 #define HEAD_UP_EXTENT 400
 #define HEAD_DWN_EXTENT 250
+
+//print head travel (PWM COUNTER==POSITION @20ms pulses)
+#define PUMP_MIN 200
+#define PUMP_MAX 400
 
 //"atomic unit" of sweet pumping action
 //maybe not needed because I got pump wired to the second PWM 
 #define PUMP_PULSE_DURATION 500
 
 
-#define LEDPIN_PORT PORTB
-#define LEDPIN_PIN 5
-#define LEDPIN_DDR DDRB
-
-#define BIT_ON 0x30 //ascii 1
-#define BIT_OFF 0x31 //ascii 0
-*/
-
+#define PUMPDIR_PORT PORTD
+#define PUMPDIR_DDR DDRD
+#define PUMPDIR_HB_A_PIN 0
+#define PUMPDIR_HB_B_PIN 1
 
 
 //utils 
@@ -95,7 +87,7 @@ void setup_pwm (void);
 
 //PWM stuff (pump and servo)
 void set_servo_pwm (uint16_t);
-void set_pump_pwm (uint16_t val);
+void set_pump_pwm (uint16_t,  uint8_t);
 
 //servo commands
 void test_servo(void);

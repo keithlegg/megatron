@@ -42,8 +42,8 @@ class protocol(object):
             return False    
 
 
-#------------------------------------_#
-#------------------------------------_#
+#######--------#######--------#######--------#######
+#######--------#######--------#######--------#######
 
 class gen_gcode(object):
     """
@@ -111,8 +111,8 @@ class gen_gcode(object):
     
 
 
-
-#------------------------------------_#
+#######--------#######--------#######--------#######
+#######--------#######--------#######--------#######
 """
 #modes:
 1 dot  
@@ -132,6 +132,7 @@ pc.map_pin(3,['M64 P3', 'M65 P3'])
 
 """
    #COMMANDS 
+   0x00 soft_reset                
    0x01 dwell                     (16bit)
    0x02 head up 
    0x04 head down 
@@ -139,32 +140,35 @@ pc.map_pin(3,['M64 P3', 'M65 P3'])
    0x08 pump on                   (16bit power)
    0x0a pump off 
    0x0c pump reverse 
+
 """
 
-pc.add_command('dwell'      , 0x01 )
-pc.add_command('head_up'    , 0x02 )
-pc.add_command('head_dwn'   , 0x04 )
-pc.add_command('z_offset'   , 0x06 )
-pc.add_command('pmp_on'     , 0x08 )
-pc.add_command('pmp_off'    , 0x0a )
-pc.add_command('pmp_rev'    , 0x0c )
+pc.add_command('soft_reset' , 0x01 )
+pc.add_command('dwell'      , 0x02 )
+pc.add_command('head_up'    , 0x04 )
+pc.add_command('head_dwn'   , 0x06 )
+pc.add_command('z_offset'   , 0x08 )
+pc.add_command('pmp_on'     , 0x0a )
+pc.add_command('pmp_off'    , 0x0c )
+pc.add_command('pmp_rev'    , 0x0e )
+
 
 #print(pc.pinmap)
 #pc.show_commands()
 
 
-#------------------------------------_#
-#------------------------------------_#
+#######--------#######--------#######--------#######
+#######--------#######--------#######--------#######
 
 gc = gen_gcode(pinmap=pc)
-gc.add('head_up'  , 100 )
-gc.add('head_dwn' , 100 )
+gc.add('head_up'  , 0 )
+gc.add('head_dwn' , 0 )
 gc.export('test_head.ngc')
 
 
 gc = gen_gcode(pinmap=pc)
-gc.add('pmp_on'  , 100 )
-gc.add('pmp_off' , 100 )
+gc.add('pmp_on'  , 0 )
+gc.add('pmp_off' , 0 )
 gc.export('test_pump.ngc') 
 
 
