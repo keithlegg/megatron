@@ -19,7 +19,10 @@ PB1/OC1A - (arduino D9)   servo pwm
 PB2/OC1B - (arduino D10)  pump mosfet pwm
 
 
+------------------------
+#X and Y quadrature encoders
 
+Yellow - Red - black - etc
 
 ------------------------
 #output optoisolator (4 ports) 

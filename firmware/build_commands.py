@@ -23,6 +23,8 @@ class protocol(object):
         self.trigger  = ['M7', 'M9']  # coolant mist (falling edge) as a trigger to load 
 
     def map_pin(self, pm_key, pm_val):
+        """define a pin and specify ON and OFF command in Gcode   
+        """
         self.pmap[pm_key] = pm_val
 
     def add_command(self, name, bytecom ):
@@ -68,13 +70,13 @@ class gen_gcode(object):
     def serialize_word(self, int_com):
         #serialize half bytes of data into G-code 
         self.gcode.append(self.pm.trigger[0])
-        for i in range(4):
+        for i in range(3,-1,-1):
             if self.DEBUG:
-                if(int_com>>i & 0x01):
+                if(int_com>>i&0x1):
                     print('BIT ON    -', self.pm.pmap[i][0])
                 else:
                     print('BIT OFF   -', self.pm.pmap[i][1])    
-            if(int_com>>i & 0x01):
+            if(int_com>>i & 0x1):
                 self.gcode.append(self.pm.pmap[i][0])
             else:
                 self.gcode.append(self.pm.pmap[i][1])
@@ -83,7 +85,7 @@ class gen_gcode(object):
     def serialize_8bit(self, int_com):
         #serialize a single byte of data into G-code 
         for i in [4,0]:
-            self.serialize_word(int_com>>i & 0x0f)
+            self.serialize_word(int_com>>i&0x0f)
 
     def serialize_16bit(self, int_com):
         #serialize 2 bytes of data into G-code 
@@ -94,19 +96,24 @@ class gen_gcode(object):
         for c in self.commands:
             comstr=  ''
             com_int = self.pm.com[c[0]]
-            self.gcode.append(';# command %s %s'%(c[0],com_int) )
+            self.gcode.append(';%s : 0x%s'%(c[0],bytearray([com_int]).hex()))
+            
             #self.serialize_word(com_int)
-            #self.serialize_8bit(com_int)
-            self.serialize_16bit(com_int)
+            self.serialize_8bit(com_int)
+            #self.serialize_16bit(com_int)
+            
             if self.DEBUG:
                 print('TRIGGER up-', self.pm.trigger[0])    
                 print('TRIGGER dn-', self.pm.trigger[1])   
+            self.gcode.append('')
+                
         f = open(filename, "w")
         for l in self.gcode:
             f.write('%s\n'%l)
         
         #end the program with M2
-        f.write('M2')
+        f.write(';prog end\n')
+        f.write('M2\n')
         f.close()
     
 
@@ -124,33 +131,20 @@ class gen_gcode(object):
 2 large brush 
 3 pallate knife 
 """
+
 pc = protocol()
 pc.map_pin(0,['M64 P0', 'M65 P0'])
 pc.map_pin(1,['M64 P1', 'M65 P1'])
 pc.map_pin(2,['M64 P2', 'M65 P2'])
 pc.map_pin(3,['M64 P3', 'M65 P3'])
-
-"""
-   #COMMANDS 
-   0x00 soft_reset                
-   0x01 dwell                     (16bit)
-   0x02 head up 
-   0x04 head down 
-   0x06 head offset/brush_height  (16bit power)
-   0x08 pump on                   (16bit power)
-   0x0a pump off 
-   0x0c pump reverse 
-
-"""
-
 pc.add_command('soft_reset' , 0x01 )
 pc.add_command('dwell'      , 0x02 )
 pc.add_command('head_up'    , 0x04 )
 pc.add_command('head_dwn'   , 0x06 )
-pc.add_command('z_offset'   , 0x08 )
-pc.add_command('pmp_on'     , 0x0a )
-pc.add_command('pmp_off'    , 0x0c )
-pc.add_command('pmp_rev'    , 0x0e )
+pc.add_command('pmp_on'     , 0x08 )
+pc.add_command('pmp_off'    , 0x0a )
+pc.add_command('pmp_rev'    , 0x0c )
+pc.add_command('z_offset'   , 0x0e )
 
 
 #print(pc.pinmap)
@@ -164,12 +158,12 @@ gc = gen_gcode(pinmap=pc)
 gc.add('head_up'  , 0 )
 gc.add('head_dwn' , 0 )
 gc.export('test_head.ngc')
-
-
+ 
 gc = gen_gcode(pinmap=pc)
 gc.add('pmp_on'  , 0 )
 gc.add('pmp_off' , 0 )
 gc.export('test_pump.ngc') 
+
 
 
 
