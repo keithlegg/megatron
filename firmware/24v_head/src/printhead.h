@@ -77,7 +77,6 @@
 
 //utils 
 uint8_t reverse_bits(uint8_t);
-void mydelay(uint16_t);
 
 //machine setup and config  
 void setup_ports (void);
@@ -91,6 +90,7 @@ void set_pump_pwm (uint16_t,  uint8_t);
 
 //servo commands
 void test_servo(void);
+void test_servo_up_dwn(void);
 void test_servo_positions(void);
 void pulse_head_position(uint16_t);
 //void pulse_head_up(uint16_t);

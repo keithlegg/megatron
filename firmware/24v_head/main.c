@@ -100,32 +100,33 @@ void startup_delay(void)
     for(uint8_t x=0;x<3;x++)
     { 
         cbi(LEDPIN_PORT, LEDPIN_PIN );
-        _delay_ms(300);
+        _delay_ms(200);
         sbi(LEDPIN_PORT, LEDPIN_PIN );
-        _delay_ms(300);
+        _delay_ms(200);
     }
     cbi(LEDPIN_PORT, LEDPIN_PIN );
 
 }
 
-void command_rx_pulse(void)
+void command_rx_pulse(uint8_t goodbad)
 {
-    /* 
-    cbi(LEDPIN_PORT, LEDPIN_PIN );
-    _delay_ms(40);
-    sbi(LEDPIN_PORT, LEDPIN_PIN );
-    _delay_ms(40);
-    cbi(LEDPIN_PORT, LEDPIN_PIN );
-    */
-
-
-    sbi(LEDPIN_PORT, LEDPIN_PIN );
-    _delay_ms(20);
-    cbi(LEDPIN_PORT, LEDPIN_PIN );
-    _delay_ms(50);
-    sbi(LEDPIN_PORT, LEDPIN_PIN );
-    _delay_ms(20);
-    cbi(LEDPIN_PORT, LEDPIN_PIN );
+    if(goodbad==1)
+    { 
+        sbi(LEDPIN_PORT, LEDPIN_PIN );
+        _delay_ms(20);
+        cbi(LEDPIN_PORT, LEDPIN_PIN );
+        _delay_ms(50);
+        sbi(LEDPIN_PORT, LEDPIN_PIN );
+        _delay_ms(20);
+        cbi(LEDPIN_PORT, LEDPIN_PIN );
+    }
+    if(goodbad==0){
+        cbi(LEDPIN_PORT, LEDPIN_PIN );
+        _delay_ms(40);
+        sbi(LEDPIN_PORT, LEDPIN_PIN );
+        _delay_ms(40);
+        cbi(LEDPIN_PORT, LEDPIN_PIN );
+    }
 
 }
 
@@ -138,7 +139,7 @@ void soft_reset(void)
     //pump PWM + DIR
     
     set_servo_pwm(HEAD_UP_EXTENT);
-    set_pump_pwm(PUMP_MIN, 0);
+    set_pump_pwm(0, 0);
 
     //LEDs
 
@@ -184,12 +185,15 @@ void soft_reset(void)
 
 void runloop(void)
 {
+    uint8_t DEBUG_CNC_COMS = false;
+
     while(1)
     { 
         /**********************************/ 
-        //FETCH COMMANDS FROM LINUXCNC   
+        // FETCH AND PARSE COMMANDS 
         if(stale==0)
-        {   /*bytes come in as 2X4 bit serialized frames. Not ideal, but we only get 4 data lines 
+        {   /*
+              bytes come in as 2X4 bit serialized frames. Not ideal, but we only get 4 data lines 
               pretty slow - about a second or two for a byte. The system wasnt designed to be used this way
               the cool thing is we can arbitrarily embed data directly in Gcode  
             */
@@ -202,76 +206,78 @@ void runloop(void)
             }
             else  
             {
-                CNC_COMMAND1 |= reverse_bits(BYTE_BUFFER)>>4 ;
+                CNC_COMMAND1 |= reverse_bits(BYTE_BUFFER)>>4;
                 word_count=0;
                 stale=1;  
 
-                /* 
-                // for debugging                               
-                send_txt_1byte(CNC_COMMAND1);
-                USART_Transmit( 0xa ); //CHAR_TERM = new line  
-                USART_Transmit( 0xd ); //0xd = carriage return
-                */ 
-                
-                //soft reset  
-                if(CNC_COMMAND1==0x01)
-                {
-                    //soft_reset();
+                if(DEBUG_CNC_COMS)  
+                {                             
+                    send_txt_1byte(CNC_COMMAND1);
+                    USART_Transmit( 0xa ); //CHAR_TERM = new line  
+                    USART_Transmit( 0xd ); //0xd = carriage return
                 }
+                else
+                { 
+                    //soft reset  
+                    if(CNC_COMMAND1==0x01)
+                    {
+                        command_rx_pulse(1);                        
+                        soft_reset();
+                    }
 
-                //dwell
-                if(CNC_COMMAND1==0x02)
-                {
-                    //sbi(LEDPIN_PORT, LEDPIN_PIN );
-                    good_com=1;                    
-                }
+                    //dwell
+                    if(CNC_COMMAND1==0x02)
+                    {
+                        //sbi(LEDPIN_PORT, LEDPIN_PIN );
+                        good_com=1;                    
+                    }
 
-                //head_up
-                if(CNC_COMMAND1==0x04)
-                {
-                    //head_up();
-                    good_com=1;                    
-                }
+                    //head_up
+                    if(CNC_COMMAND1==0x04)
+                    {
+                        head_up();
+                        good_com=1;                    
+                    }
 
-                //head_dwn
-                if(CNC_COMMAND1==0x06)
-                {
-                    //head_up();
-                    good_com=1;
-                }
+                    //head_dwn
+                    if(CNC_COMMAND1==0x06)
+                    {
+                        head_dwn();
+                        good_com=1;
+                    }
 
-                //16bit (set) z_offset
-                if(CNC_COMMAND1==0x08)
-                {
-                    //head_dwn();
-                    good_com=1;                    
-                }
+                    //16bit (set) z_offset
+                    if(CNC_COMMAND1==0x08)
+                    {
+                        good_com=1;                    
+                    }
 
-                //pump_on
-                if(CNC_COMMAND1==0x0a)
-                {
-                    //head_dwn();
-                    good_com=1;                    
-                }
-                
-                //pump_off
-                if(CNC_COMMAND1==0x0c)
-                {
-                    //head_dwn();
-                    good_com=1;                    
-                }
-                
-                //pump_rev
-                if(CNC_COMMAND1==0x0e)
-                {
-                    //head_dwn();
-                    good_com=1;                    
-                }
-                
-                if(good_com==1)
-                {
-                    command_rx_pulse();
-                    good_com=0;
+                    //pump_on
+                    if(CNC_COMMAND1==0x0a)
+                    {
+                        good_com=1;                    
+                    }
+                    
+                    //pump_off
+                    if(CNC_COMMAND1==0x0c)
+                    {
+                        good_com=1;                    
+                    }
+                    
+                    //pump_rev
+                    if(CNC_COMMAND1==0x0e)
+                    {
+                        good_com=1;                    
+                    }
+                    
+                    //blink out what we got 
+                    if(good_com==1)
+                    {
+                        good_com=0;
+                        command_rx_pulse(1);
+                    }else{
+                        command_rx_pulse(0);
+                    }
                 }
             }//do what thou wilt inside this loop 
         }//parse incoming commands
@@ -316,17 +322,18 @@ int main (void)
     /*******/
     // machine is ready to play now 
 
-    
-    //runloop();
-    
+    runloop();
+
     /*******/
+    //test_servo(); 
+    //test_servo_positions(); DEBUG NOT DONE 
+    //test_servo_up_dwn();
+
+
     //test_pump();
 
-    //test_servo_positions(); DEBUG NOT DONE 
-    //test_servo(); 
-
-   
-    test_chatterbox();
+    
+    //test_chatterbox();
 
 
 } 

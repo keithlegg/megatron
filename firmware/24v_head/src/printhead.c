@@ -20,51 +20,28 @@
 
 
 
-
-/***************************/
-
-
-
-
-
-
-
-
-void mydelay(uint16_t time)
-{
-    uint16_t t=0; 
-    for(t=0;t<time;t++) 
-    {
-        asm( "nop ");
-    }
-    for(t=0;t<time;t++) 
-    {
-        asm( "nop ");
-    }
-
-}
-
-
 /***********************************************/
 void set_servo_pwm (uint16_t val)
 {
     if(val<=HEAD_UP_EXTENT||val>=HEAD_DWN_EXTENT){ OCR1A = val; }
-    //OCR1A = val;
-
 }
 
 /***********************************************/
 void set_pump_pwm (uint16_t val, uint8_t dir)
 {   
+    // default dir is 0
+    // I added this for the option to reverse the pump for experimenting 
+    // can be used with a single mosfet and you can ignore the direction lines entirely 
 
     if(dir)
     {
         cbi(PUMPDIR_PORT, PUMPDIR_HB_A_PIN );
         sbi(PUMPDIR_PORT, PUMPDIR_HB_B_PIN );
         OCR1B = val;
+
     }else{
         sbi(PUMPDIR_PORT, PUMPDIR_HB_A_PIN );
-        cbi(PUMPDIR_PORT, PUMPDIR_HB_B_PIN );
+        cbi(PUMPDIR_PORT, PUMPDIR_HB_B_PIN ); 
         OCR1B = val;
     }
 }
@@ -133,7 +110,18 @@ void test_servo_positions(void)
     //180 degrees 
 }
 
-
+void test_servo_up_dwn(void)
+{
+    while(1)
+    {
+    
+        head_dwn();
+        _delay_ms(2000);
+         
+        head_up();
+        _delay_ms(2000);
+    }
+}
 
 void test_servo(void)
 {
@@ -233,13 +221,30 @@ void test_pump(void)
     while(1)
     {
         //run_pump_dwn(false);
-        
-        set_pump_pwm(512, true);
+     
+        set_pump_pwm(400, false);
+        _delay_ms(2000);
+        set_pump_pwm(600, false);
+        _delay_ms(2000);
+        set_pump_pwm(800, false);
+        _delay_ms(2000);
+        set_pump_pwm(1000, false);
         _delay_ms(2000);
 
-        set_pump_pwm(512, false);
+        set_pump_pwm(0, false);
+        _delay_ms(5000);
+
+        set_pump_pwm(400, true);
         _delay_ms(2000);
-                         
+        set_pump_pwm(600, true);
+        _delay_ms(2000);
+        set_pump_pwm(800, true);
+        _delay_ms(2000);  
+        set_pump_pwm(1000, true);
+        _delay_ms(2000);
+
+        set_pump_pwm(0, false);
+        _delay_ms(5000);                                       
 
     }  
 }
