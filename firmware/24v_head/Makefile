@@ -2,7 +2,7 @@
 PROJECT=main
 
 
-SOURCES=src/printhead.c src/prnt_head_uart.c $(PROJECT).c 
+SOURCES=src/command_buffer.c src/printhead.c src/prnt_head_uart.c $(PROJECT).c 
 
 
 

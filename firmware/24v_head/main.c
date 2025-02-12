@@ -67,18 +67,34 @@
 #include "src/prnt_head_uart.h"
 #include "src/printhead.h"
 
+#include "src/command_buffer.h"
+
 
 
 
 //---------
 //stuff for interrupts 
-volatile uint8_t stale;
-volatile uint8_t BYTE_BUFFER;
+volatile uint8_t BYTE_BUFFER1; //first  4 bits 
+volatile uint8_t BYTE_BUFFER2; //second 4 bits 
+volatile uint8_t CNC_COMMAND1; //assembled 8 bits 
+volatile bool quit_early     ; // Abort processing. 
+
+char line[BUFFER_SIZE];
+
+rbuf_t  rbuf;
+
+rbuf_count_t rbuf_getcount(rbuf_t *);
+rbuf_data_t rbuf_remove(rbuf_t *);
+
+
+
+
+
 
 //---------
 //uint8_t byte_count   = 0;
 uint8_t word_count   = 0;
-uint8_t CNC_COMMAND1 = 0;
+
 //uint8_t CNC_COMMAND2 = 0;
 //uint8_t CNC_COMMAND3 = 0;
 uint8_t good_com = 0;
@@ -108,7 +124,7 @@ void startup_delay(void)
 
 }
 
-void command_rx_pulse(uint8_t goodbad)
+void led_rx_pulse(uint8_t goodbad)
 {
     if(goodbad==1)
     { 
@@ -133,8 +149,6 @@ void command_rx_pulse(uint8_t goodbad)
 // set all the state machines back to defaults 
 void soft_reset(void)
 {
-    stale=1;
-
     //pump PWM 
     //pump PWM + DIR
     
@@ -185,43 +199,41 @@ void soft_reset(void)
 
 void runloop(void)
 {
-    uint8_t DEBUG_CNC_COMS = false;
+    uint8_t DEBUG_CNC_COMS = true;
 
     while(1)
     { 
         /**********************************/ 
         // FETCH AND PARSE COMMANDS 
-        if(stale==0)
+        if(word_count==1)
         {   /*
               bytes come in as 2X4 bit serialized frames. Not ideal, but we only get 4 data lines 
               pretty slow - about a second or two for a byte. The system wasnt designed to be used this way
               the cool thing is we can arbitrarily embed data directly in Gcode  
             */
-            if(word_count==0)
+            if(1)
             {
 
-                CNC_COMMAND1 =  reverse_bits(BYTE_BUFFER);
-                word_count++;
-                stale=1; 
-            }
-            else  
-            {
-                CNC_COMMAND1 |= reverse_bits(BYTE_BUFFER)>>4;
-                word_count=0;
-                stale=1;  
+                CNC_COMMAND1 = reverse_bits(BYTE_BUFFER1);
+                CNC_COMMAND1 |= reverse_bits(BYTE_BUFFER2)>>4;
 
                 if(DEBUG_CNC_COMS)  
                 {                             
-                    send_txt_1byte(CNC_COMMAND1);
+                    send_txt_1byte(BYTE_BUFFER1);
                     USART_Transmit( 0xa ); //CHAR_TERM = new line  
                     USART_Transmit( 0xd ); //0xd = carriage return
+                    
+                    send_txt_1byte(BYTE_BUFFER2);
+                    USART_Transmit( 0xa ); //CHAR_TERM = new line  
+                    USART_Transmit( 0xd ); //0xd = carriage return
+
                 }
                 else
                 { 
                     //soft reset  
                     if(CNC_COMMAND1==0x01)
                     {
-                        command_rx_pulse(1);                        
+                        led_rx_pulse(1);                        
                         soft_reset();
                     }
 
@@ -246,37 +258,39 @@ void runloop(void)
                         good_com=1;
                     }
 
-                    //16bit (set) z_offset
-                    if(CNC_COMMAND1==0x08)
-                    {
-                        good_com=1;                    
-                    }
-
                     //pump_on
-                    if(CNC_COMMAND1==0x0a)
+                    if(CNC_COMMAND1==0x08)
                     {
                         good_com=1;                    
                     }
                     
                     //pump_off
+                    if(CNC_COMMAND1==0x0a)
+                    {
+                        good_com=1;                    
+                    }
+
+                    /*
+                    //pump_rev
                     if(CNC_COMMAND1==0x0c)
                     {
                         good_com=1;                    
                     }
-                    
-                    //pump_rev
+                    //16bit (set) z_offset
                     if(CNC_COMMAND1==0x0e)
                     {
                         good_com=1;                    
                     }
-                    
+                    */
+
+                    //********************//
                     //blink out what we got 
                     if(good_com==1)
                     {
                         good_com=0;
-                        command_rx_pulse(1);
+                        led_rx_pulse(1);
                     }else{
-                        command_rx_pulse(0);
+                        led_rx_pulse(0);
                     }
                 }
             }//do what thou wilt inside this loop 
@@ -284,7 +298,7 @@ void runloop(void)
 
         /**********************************/ 
         //UPDATE SERVO POSITION
-
+        /*
         if(LAST_Z_PULSE!=Z_PULSE)
         {
  
@@ -296,6 +310,7 @@ void runloop(void)
 
         }
         LAST_Z_PULSE = Z_PULSE; 
+        */
         /**********************************/ 
 
 
@@ -309,7 +324,7 @@ void runloop(void)
 
 int main (void)
 {
- 
+   
     /*******/
     // machine setup  
     USART_Init(MYUBRR);
@@ -322,7 +337,8 @@ int main (void)
     /*******/
     // machine is ready to play now 
 
-    runloop();
+    //runloop();
+
 
     /*******/
     //test_servo(); 
@@ -333,8 +349,16 @@ int main (void)
     //test_pump();
 
     
-    //test_chatterbox();
+    test_chatterbox();
 
+    /*
+    uint8_t x = 0b10100101;
+    uint8_t y = x &= 0xf0;
+
+    send_txt_1byte(y);
+    USART_Transmit( 0xa ); //CHAR_TERM = new line  
+    USART_Transmit( 0xd ); //0xd = carriage return
+    */
 
 } 
 
@@ -342,47 +366,45 @@ int main (void)
 
 /***********************************************/
 void test_chatterbox(void)
-{
-    uint8_t DEBUG = true;
+{ 
+    uint8_t c;
 
-    while(1)
-    {
-        //assemble 2 4bits into an 8bit byte  
-        if(stale==0)
-        {
-            if(word_count==0)
-            {
-                CNC_COMMAND1 =  reverse_bits(BYTE_BUFFER);
-                word_count++;
-                stale=1; 
-            }else{
-                CNC_COMMAND1 |= reverse_bits(BYTE_BUFFER)>>4 ;
-                word_count=0;
-                stale=1;                                 
-                
-                if(DEBUG)
-                {
-                    send_txt_1byte(CNC_COMMAND1);
-                    USART_Transmit( 0xa ); //CHAR_TERM = new line  
-                    USART_Transmit( 0xd ); //0xd = carriage return
-                }
-            } 
-            
-            //TODO set up a way to store every 3rd byte 
-            /* if(byte_count==2){}*/
+    while (rbuf_isempty(&rbuf)); // block until something's there 
+    c = rbuf_remove(&rbuf);
+    
+    send_txt_1byte(c);
+    USART_Transmit( 0xa ); //CHAR_TERM = new line  
+    USART_Transmit( 0xd ); //0xd = carriage return
 
-        }//data in rx buffer 
-    }//endless loop
 }
 
 /***********************************************/
  
 // wired to the "coolant mist" line to trigger a 4 bit bus transfer  
 ISR (INT4_vect)
-{
-    BYTE_BUFFER = PINF; 
-    stale=0;
+{   
+     
+    if(word_count==0){
+        BYTE_BUFFER1 = PINF<<4;
+        word_count=1;
+    }else{
+        CNC_COMMAND1 = (PINF &=0x0f) |= (BYTE_BUFFER1 &=0xf0);
+        word_count=0;
+    
+        // If command line is active, store the character. 
+        if (CNC_COMMAND1)
+            rbuf_insert(&rbuf, (rbuf_data_t) CNC_COMMAND1);
+        // else // Otherwise check to see if we need to abort.
+        // {   
+        //     if (CNC_COMMAND1 == 0x03)
+        //         quit_early = TRUE;
+        // }
 
+        // send_txt_1byte(CNC_COMMAND1);
+        // USART_Transmit( 0xa ); //CHAR_TERM = new line  
+        // USART_Transmit( 0xd ); //0xd = carriage return
+    } 
+    
 }
 
 // wired to Z step   

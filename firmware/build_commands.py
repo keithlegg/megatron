@@ -18,9 +18,10 @@ class protocol(object):
     """
     
     def __init__(self):
-        self.com  = {}                # name byte(command)   
-        self.pmap = {}                # int, gcodeON gcodeOFF
+        self.com      = {}                # name byte(command)   
+        self.pmap     = {}                # int, gcodeON gcodeOFF
         self.trigger  = ['M7', 'M9']  # coolant mist (falling edge) as a trigger to load 
+        self.cnt      = 0
 
     def map_pin(self, pm_key, pm_val):
         """define a pin and specify ON and OFF command in Gcode   
@@ -29,7 +30,8 @@ class protocol(object):
 
     def add_command(self, name, bytecom ):
         self.com[name] = bytecom
-    
+        self.cnt+=1  
+
     def show_commands(self):
         for key, value in self.com.items():
             if value<255:
@@ -55,15 +57,17 @@ class gen_gcode(object):
     def __init__(self, pinmap):
         self.DEBUG = False
 
-        self.pm = pinmap
+        self.pm = pinmap   # protocol definition 
         self.commands = []
-        self.gcode    = []
-        
+        self.gcode    = [] # text data of file to export 
+        self.cnt      = 0  # count of commands 
+
     def add(self, name, value):
         com = self.pm.exists(name)
         if com:
             self.commands.append([ name, com, value ])
-            print('added new command: %s %s'%(name,value))
+            #print('added new command: %s %s'%(name,value))
+            self.cnt+=1
         else:
             print('command %s does not exist in protocol'%name)
 
@@ -115,7 +119,10 @@ class gen_gcode(object):
         f.write(';prog end\n')
         f.write('M2\n')
         f.close()
-    
+        
+        print('# -> exported gcode file %s with %s commands '%(filename, self.cnt))
+        #print('# -> (protocol contains %s unique commands)  '%(self.pm.cnt))
+
 
 
 #######--------#######--------#######--------#######
@@ -132,6 +139,61 @@ class gen_gcode(object):
 3 pallate knife 
 """
 
+#######--------#######--------#######--------#######
+#######--------#######--------#######--------#######
+#program to test communication protocol
+
+pc = protocol()
+pc.map_pin(0,['M64 P0', 'M65 P0'])
+pc.map_pin(1,['M64 P1', 'M65 P1'])
+pc.map_pin(2,['M64 P2', 'M65 P2'])
+pc.map_pin(3,['M64 P3', 'M65 P3'])
+pc.add_command('t1'  , 0b10000000 )
+pc.add_command('t2'  , 0b01000000 )
+pc.add_command('t3'  , 0b00100000 )
+pc.add_command('t4'  , 0b00010000 )
+pc.add_command('t5'  , 0b00001000 )
+pc.add_command('t6'  , 0b00000100 )
+pc.add_command('t7'  , 0b00000010 )
+pc.add_command('t8'  , 0b00000001 )
+pc.add_command('t9'  , 0b10001000 )
+pc.add_command('t10' , 0b00010001 )
+pc.add_command('t11' , 0b00111000 )
+pc.add_command('t12' , 0b10000001 )
+pc.add_command('t13' , 0b10101010 )
+pc.add_command('t14' , 0b01010101 )
+pc.add_command('t15' , 0b10001000 )
+pc.add_command('t16' , 0b00010001 )
+gc = gen_gcode(pinmap=pc)
+gc.add('t1'   ,0 )
+gc.add('t2'   ,0 )
+gc.add('t3'   ,0 )
+gc.add('t4'   ,0 )
+gc.add('t5'   ,0 )
+gc.add('t6'   ,0 )
+gc.add('t7'   ,0 )
+gc.add('t8'   ,0 )
+gc.add('t9'   ,0 )
+gc.add('t10'  ,0 )
+gc.add('t11'  ,0 )
+gc.add('t12'  ,0 )
+gc.add('t13'  ,0 )
+gc.add('t14'  ,0 )
+gc.add('t15'  ,0 )
+gc.add('t16'  ,0 )
+
+gc.export('flashbitz.ngc')
+
+
+
+
+
+
+#######--------#######--------#######--------#######
+#######--------#######--------#######--------#######
+
+#actual machine programs for testing hardware 
+"""
 pc = protocol()
 pc.map_pin(0,['M64 P0', 'M65 P0'])
 pc.map_pin(1,['M64 P1', 'M65 P1'])
@@ -146,24 +208,25 @@ pc.add_command('pmp_off'    , 0x0a )
 pc.add_command('pmp_rev'    , 0x0c )
 pc.add_command('z_offset'   , 0x0e )
 
-
 #print(pc.pinmap)
 #pc.show_commands()
 
-
-#######--------#######--------#######--------#######
-#######--------#######--------#######--------#######
-
 gc = gen_gcode(pinmap=pc)
 gc.add('head_up'  , 0 )
-gc.add('head_dwn' , 0 )
-gc.export('test_head.ngc')
- 
+gc.export('headup.ngc')
+
+gc = gen_gcode(pinmap=pc)
+gc.add('head_dwn'  , 0 )
+gc.export('head_dwn.ngc')
+
 gc = gen_gcode(pinmap=pc)
 gc.add('pmp_on'  , 0 )
-gc.add('pmp_off' , 0 )
-gc.export('test_pump.ngc') 
+gc.export('pumpon.ngc') 
 
+gc = gen_gcode(pinmap=pc)
+gc.add('pmp_off'  , 0 )
+gc.export('pmp_off.ngc') 
+"""
 
 
 

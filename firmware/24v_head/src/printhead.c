@@ -23,7 +23,8 @@
 /***********************************************/
 void set_servo_pwm (uint16_t val)
 {
-    if(val<=HEAD_UP_EXTENT||val>=HEAD_DWN_EXTENT){ OCR1A = val; }
+    //if(val<=HEAD_UP_EXTENT||val>=HEAD_DWN_EXTENT){ OCR1A = val; }
+    OCR1A = val;
 }
 
 /***********************************************/
@@ -147,6 +148,13 @@ void head_up(void)
     set_servo_pwm(HEAD_UP_EXTENT);
 }
 
+
+void head_dwn(void)
+{
+    set_servo_pwm(HEAD_DWN_EXTENT);
+}
+
+/***********************************************/
 void pulse_head_position(uint16_t coord)
 {
 
@@ -157,13 +165,6 @@ void pulse_head_position(uint16_t coord)
         send_txt_2bytes(coord, true, true);
     }
 
-}
-
-
-/***********************************************/
-void head_dwn(void)
-{
-    set_servo_pwm(HEAD_DWN_EXTENT);
 }
 
 /***********************************************/
@@ -254,6 +255,7 @@ uint8_t reverse_bits(uint8_t v)
 {
     uint8_t r = v & 1;         // r will be reversed bits of v; first get LSB of v
     uint8_t s = sizeof(v) * 7; // extra shift needed at end
+
     for (v >>= 1; v; v >>= 1)
     {   
         r <<= 1;
