@@ -73,27 +73,24 @@
 
 
 //---------
-//stuff for interrupts 
 volatile uint8_t BYTE_BUFFER1; //first  4 bits 
 volatile uint8_t BYTE_BUFFER2; //second 4 bits 
 volatile uint8_t CNC_COMMAND1; //assembled 8 bits 
 volatile bool quit_early     ; // Abort processing. 
-
 char line[BUFFER_SIZE];
-
 rbuf_t  rbuf;
-
 rbuf_count_t rbuf_getcount(rbuf_t *);
 rbuf_data_t rbuf_remove(rbuf_t *);
 
 
+volatile uint8_t byte_count   = 0;
+volatile uint8_t word_count   = 0;
 
-
-
+volatile uint16_t pump_power  = 0;
+volatile uint8_t pump_dir     = 0;
 
 //---------
-//uint8_t byte_count   = 0;
-uint8_t word_count   = 0;
+
 
 //uint8_t CNC_COMMAND2 = 0;
 //uint8_t CNC_COMMAND3 = 0;
@@ -197,92 +194,98 @@ void soft_reset(void)
 
 */
 
+
 void runloop(void)
 {
-    uint8_t DEBUG_CNC_COMS = true;
+    uint8_t DEBUG_CNC_COMS = false;
 
     while(1)
     { 
-        /**********************************/ 
-        // FETCH AND PARSE COMMANDS 
-        if(word_count==1)
-        {   /*
-              bytes come in as 2X4 bit serialized frames. Not ideal, but we only get 4 data lines 
-              pretty slow - about a second or two for a byte. The system wasnt designed to be used this way
-              the cool thing is we can arbitrarily embed data directly in Gcode  
-            */
-            if(1)
-            {
+        if(byte_count>0)
+        {
+            if(DEBUG_CNC_COMS)  
+            {                             
 
-                CNC_COMMAND1 = reverse_bits(BYTE_BUFFER1);
-                CNC_COMMAND1 |= reverse_bits(BYTE_BUFFER2)>>4;
-
-                if(DEBUG_CNC_COMS)  
-                {                             
-                    send_txt_1byte(BYTE_BUFFER1);
-                    USART_Transmit( 0xa ); //CHAR_TERM = new line  
-                    USART_Transmit( 0xd ); //0xd = carriage return
-                    
-                    send_txt_1byte(BYTE_BUFFER2);
+                if (byte_count>0)
+                {   
+                    send_txt_1byte(CNC_COMMAND1);
                     USART_Transmit( 0xa ); //CHAR_TERM = new line  
                     USART_Transmit( 0xd ); //0xd = carriage return
 
+                    byte_count--;
                 }
-                else
-                { 
+                if (byte_count==0)
+                {   
+                    
+                    USART_Transmit( 0x64 );
+                    USART_Transmit( 0x6f );
+                    USART_Transmit( 0x6e );
+                    USART_Transmit( 0x65 );
+                    USART_Transmit( 0xa ); //CHAR_TERM = new line  
+                    USART_Transmit( 0xd ); //0xd = carriage return
+                }
+            }
+            else
+            { 
+                //process bytes as they come in 
+                if (byte_count>0)
+                {   
+                    //********************//                     
+                    //********************//
+                    //begin process commands loop 
                     //soft reset  
                     if(CNC_COMMAND1==0x01)
                     {
-                        led_rx_pulse(1);                        
-                        soft_reset();
+                        //led_rx_pulse(1);                        
+                        //soft_reset();
                     }
-
                     //dwell
                     if(CNC_COMMAND1==0x02)
                     {
                         //sbi(LEDPIN_PORT, LEDPIN_PIN );
-                        good_com=1;                    
+                        //good_com=1;                    
                     }
-
                     //head_up
                     if(CNC_COMMAND1==0x04)
                     {
                         head_up();
                         good_com=1;                    
                     }
-
                     //head_dwn
                     if(CNC_COMMAND1==0x06)
                     {
                         head_dwn();
                         good_com=1;
                     }
-
                     //pump_on
                     if(CNC_COMMAND1==0x08)
                     {
+                        pump_power=750;
+                        set_pump_pwm(pump_power, pump_dir);    
                         good_com=1;                    
                     }
-                    
                     //pump_off
                     if(CNC_COMMAND1==0x0a)
                     {
+                        pump_power=0;
+                        set_pump_pwm(pump_power, pump_dir);
                         good_com=1;                    
                     }
-
-                    /*
                     //pump_rev
                     if(CNC_COMMAND1==0x0c)
                     {
+                        if(pump_dir==0){pump_dir=1;}
+                        else if(pump_dir==1){pump_dir=0;}
+                        set_pump_pwm(pump_power, pump_dir);                                                 
                         good_com=1;                    
                     }
                     //16bit (set) z_offset
                     if(CNC_COMMAND1==0x0e)
                     {
-                        good_com=1;                    
+                        //good_com=1;                    
                     }
-                    */
 
+                    //********************//                     
                     //********************//
                     //blink out what we got 
                     if(good_com==1)
@@ -292,9 +295,18 @@ void runloop(void)
                     }else{
                         led_rx_pulse(0);
                     }
+                    //********************//                    
+                    //end process commands loop 
+                    byte_count--;
                 }
-            }//do what thou wilt inside this loop 
-        }//parse incoming commands
+                if (byte_count==0)
+                {   
+                    //sad little buffer. It will get better over time. 
+                    //TODO 
+
+                }
+            }
+        }//do what thou wilt inside this loop 
 
         /**********************************/ 
         //UPDATE SERVO POSITION
@@ -327,7 +339,8 @@ int main (void)
    
     /*******/
     // machine setup  
-    USART_Init(MYUBRR);
+    //USART_Init(MYUBRR); //UART only for debugging 
+
     setup_interrupts();
     setup_ports();   
     setup_pwm();
@@ -337,19 +350,18 @@ int main (void)
     /*******/
     // machine is ready to play now 
 
-    //runloop();
-
+    runloop();
 
     /*******/
+    //test_chatterbox();
     //test_servo(); 
     //test_servo_positions(); DEBUG NOT DONE 
     //test_servo_up_dwn();
 
 
     //test_pump();
-
     
-    test_chatterbox();
+
 
     /*
     uint8_t x = 0b10100101;
@@ -390,10 +402,11 @@ ISR (INT4_vect)
     }else{
         CNC_COMMAND1 = (PINF &=0x0f) |= (BYTE_BUFFER1 &=0xf0);
         word_count=0;
-    
+        byte_count++;
+
         // If command line is active, store the character. 
-        if (CNC_COMMAND1)
-            rbuf_insert(&rbuf, (rbuf_data_t) CNC_COMMAND1);
+        //if (CNC_COMMAND1)
+        //    rbuf_insert(&rbuf, (rbuf_data_t) CNC_COMMAND1);
         // else // Otherwise check to see if we need to abort.
         // {   
         //     if (CNC_COMMAND1 == 0x03)

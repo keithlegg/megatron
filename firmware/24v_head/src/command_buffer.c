@@ -1,6 +1,13 @@
 /*
     buffer - taken from the AVR forums. Not sure how it works yet, still testing 
-    
+
+    TO USE: include these in your code.
+     
+      volatile bool command;      // Command line active? 
+      volatile bool quit_early;   // Abort processing. 
+      rbuf_t  rbuf;
+      char line[BUFFER_SIZE];
+
 */
 
 
@@ -12,13 +19,6 @@
 
 rbuf_count_t rbuf_getcount(rbuf_t *);
 rbuf_data_t rbuf_remove(rbuf_t *);
-
-// include these in your code 
-//volatile bool command;      // Command line active? 
-//volatile bool quit_early;   // Abort processing. 
-//rbuf_t  rbuf;
-//char line[BUFFER_SIZE];
-
 
 
 

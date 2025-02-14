@@ -34,13 +34,14 @@ void set_pump_pwm (uint16_t val, uint8_t dir)
     // I added this for the option to reverse the pump for experimenting 
     // can be used with a single mosfet and you can ignore the direction lines entirely 
 
-    if(dir)
+    if(dir==1)
     {
         cbi(PUMPDIR_PORT, PUMPDIR_HB_A_PIN );
         sbi(PUMPDIR_PORT, PUMPDIR_HB_B_PIN );
         OCR1B = val;
 
-    }else{
+    }
+    if(dir==0){
         sbi(PUMPDIR_PORT, PUMPDIR_HB_A_PIN );
         cbi(PUMPDIR_PORT, PUMPDIR_HB_B_PIN ); 
         OCR1B = val;

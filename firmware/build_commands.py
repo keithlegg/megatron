@@ -142,7 +142,7 @@ class gen_gcode(object):
 #######--------#######--------#######--------#######
 #######--------#######--------#######--------#######
 #program to test communication protocol
-
+"""
 pc = protocol()
 pc.map_pin(0,['M64 P0', 'M65 P0'])
 pc.map_pin(1,['M64 P1', 'M65 P1'])
@@ -183,9 +183,7 @@ gc.add('t15'  ,0 )
 gc.add('t16'  ,0 )
 
 gc.export('flashbitz.ngc')
-
-
-
+"""
 
 
 
@@ -193,7 +191,7 @@ gc.export('flashbitz.ngc')
 #######--------#######--------#######--------#######
 
 #actual machine programs for testing hardware 
-"""
+
 pc = protocol()
 pc.map_pin(0,['M64 P0', 'M65 P0'])
 pc.map_pin(1,['M64 P1', 'M65 P1'])
@@ -226,7 +224,7 @@ gc.export('pumpon.ngc')
 gc = gen_gcode(pinmap=pc)
 gc.add('pmp_off'  , 0 )
 gc.export('pmp_off.ngc') 
-"""
+
 
 
 
