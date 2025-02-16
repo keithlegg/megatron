@@ -1,4 +1,18 @@
 /*
+
+    TODO:
+
+
+    "Fast mode"
+    use coolant mist line to be a 1-bit up/down mode instead of the binary command structure  
+    "spring tube" hardware with brush/ink pen 
+    
+
+
+
+    ###########################################################
+
+
     24 Volt print head wiring (will run at 12 Volt also) 
 
     Data protocol - 4 bit frame (HAL digital out 0-3) with the (coolant mist, falling edge ) as a latch   
@@ -260,14 +274,14 @@ void runloop(void)
                     //pump_on
                     if(CNC_COMMAND1==0x08)
                     {
-                        pump_power=750;
+                        pump_power=PUMP_MAX;
                         set_pump_pwm(pump_power, pump_dir);    
                         good_com=1;                    
                     }
                     //pump_off
                     if(CNC_COMMAND1==0x0a)
                     {
-                        pump_power=0;
+                        pump_power=PUMP_MIN;
                         set_pump_pwm(pump_power, pump_dir);
                         good_com=1;                    
                     }

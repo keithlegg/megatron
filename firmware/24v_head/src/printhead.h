@@ -50,8 +50,12 @@
 
 
 
-
 //MACHINE PARAMETERS
+
+#define PUMPDIR_PORT PORTD
+#define PUMPDIR_DDR DDRD
+#define PUMPDIR_HB_A_PIN 0
+#define PUMPDIR_HB_B_PIN 1
 
 //servo response time
 #define SERVO_DEL_MS 2
@@ -60,19 +64,22 @@
 #define HEAD_UP_EXTENT 400
 #define HEAD_DWN_EXTENT 250
 
-//print head travel (PWM COUNTER==POSITION @20ms pulses)
-#define PUMP_MIN 200
+
+//PUMP CONTROL presets 
 #define PUMP_MAX 400
+#define PUMP_MIN 0
 
-//"atomic unit" of sweet pumping action
-//maybe not needed because I got pump wired to the second PWM 
-#define PUMP_PULSE_DURATION 500
+//presets for 12V pump 
+#define PNT_12V_THICK_OIL 750
+#define PNT_12V_THIN_OIL 300
+
+//presets for 24V pump 
+#define PNT_24V_THICK_OIL 750
+#define PNT_24V_THIN_OIL 300
 
 
-#define PUMPDIR_PORT PORTD
-#define PUMPDIR_DDR DDRD
-#define PUMPDIR_HB_A_PIN 0
-#define PUMPDIR_HB_B_PIN 1
+
+
 
 
 //utils 

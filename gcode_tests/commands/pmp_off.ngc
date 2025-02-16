@@ -1,0 +1,16 @@
+;pmp_off : 0x0a
+M7
+M65 P3
+M65 P2
+M65 P1
+M65 P0
+M9
+M7
+M64 P3
+M65 P2
+M64 P1
+M65 P0
+M9
+
+;prog end
+M2

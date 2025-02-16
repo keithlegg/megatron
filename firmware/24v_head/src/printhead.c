@@ -169,55 +169,6 @@ void pulse_head_position(uint16_t coord)
 }
 
 /***********************************************/
-/*
-void pump_pulse(uint16_t time, uint16_t power)
-{
-
-    sbi(LEDPIN_PORT, LEDPIN_PIN );
-    set_pump_pwm(power, 0);
-
-    uint16_t t=0; 
-    for(t=0;t<time;t++) 
-    {
-        //_delay_us(PUMP_PULSE_DURATION);    
-        asm( "nop ");
-    }
-
-    set_pump_pwm(0, 0);
-    cbi(LEDPIN_PORT, LEDPIN_PIN );
-
-}
-
-void run_pump_dwn(uint8_t movehead)
-{
-    
-    uint16_t delay=1500;
-    
-
-    if(movehead)head_dwn();
-    _delay_ms(1000);
-    
-    pump_pulse(1500, 500);
-    _delay_ms(delay);
-
-    pump_pulse(1500, 1000);
-    _delay_ms(delay);
-
-    pump_pulse(1500, 1500);    
-    _delay_ms(delay);
-
-    pump_pulse(1500, 2000);
-    _delay_ms(delay);
-
-    pump_pulse(1500, 2500);
-    _delay_ms(delay);
- 
-    if(movehead)head_up(); 
-    _delay_ms(1000);
-
-}
-*/
-
 void test_pump(void)
 {
     while(1)

@@ -1,4 +1,7 @@
 
+
+
+            
 class protocol(object):
     """ pin map is a dict that has ON and OFF command for an indexed pin  
         LinuxCNC only gives you 4 digital outs.  

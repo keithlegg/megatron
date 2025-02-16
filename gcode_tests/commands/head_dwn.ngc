@@ -1,0 +1,16 @@
+;head_dwn : 0x06
+M7
+M65 P3
+M65 P2
+M65 P1
+M65 P0
+M9
+M7
+M65 P3
+M64 P2
+M64 P1
+M65 P0
+M9
+
+;prog end
+M2
