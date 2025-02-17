@@ -1,20 +1,16 @@
 
 
 
-PROJECT = megatron
+PROJECT = mega_flatbed
 BUILD_DIR = bin
 
 #LDSCRIPT = bluepill.ld
 LDFLAGS += bluepill.ld
 
 SHARED_DIR = ../common
-
 CFILES = main.c
 
-CFILES += common.c north_port.c south_port.c test_ports.c
-#CFILES += dwt_stm32_delay.c 
-CFILES += stm32_sw_i2c.c 
-CFILES += blocknet.c 
+
 
 #AFILES += api-asm.S
 
